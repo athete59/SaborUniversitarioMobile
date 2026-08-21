@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Welcome to your Expo app 👋
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
@@ -48,3 +49,30 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+=======
+# 🍽️ Sabor Universitário - Versão Mobile
+
+O **Sabor Universitário** é um sistema de gestão e benefícios alimentares projetado para integrar instituições de ensino, empresas parceiras, funcionários e clientes (estudantes/professores) em uma única plataforma prática e eficiente.
+
+---
+
+## 👥 Perfis do Sistema
+
+Na versão mobile, o sistema é dividido em 2 níveis de acesso independentes, cada um com suas respectivas funcionalidades:
+
+### 💼 1. Empresa (Restaurantes/Parceiros)
+*   **Função:** Responsável por controla as vendas e fluxo de caixa .
+
+### 🎓 2. Cliente (Alunos/Professores/Comunidade)
+*   **Função:** O usuário final da aplicação. Pode visualizar cardápios, comprar refeições, gerenciar seus saldos de benefícios e gerar cupons/QR Codes para retirada de alimentos.
+
+---
+
+## 🛠️ Tecnologias Utilizadas
+
+*   **Frontend:** Reactive Native + Expo
+*   **Banco de Dados & Autenticação:** [Supabase](https://supabase.com/) (PostgreSQL + Auth nativo)
+*   **Controle de Versão:** Git & GitHub
+
+
+>>>>>>> 1be9a85b747dfd00329834cc6c37dc7192437ae1
