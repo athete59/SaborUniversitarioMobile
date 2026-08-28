@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { BerkshireSwash_400Regular } from "@expo-google-fonts/berkshire-swash";
 import {
@@ -53,7 +54,7 @@ export default function Login() {
     try {
       // Consulta na tabela de usuários do Supabase
       const { data: usuarios, error } = await supabase
-        .from("usuarios") // Nome da sua tabela de usuários
+        .from("usuarios")
         .select("*")
         .eq("email", email.trim())
         .eq("senha", senha)
@@ -72,12 +73,12 @@ export default function Login() {
       }
 
       const usuarioLogado = usuarios[0];
-      Alert.alert(
-        "Sucesso",
-        `Bem-vindo(a), ${usuarioLogado.nome || "usuário"}!`,
-      );
 
-      // Aqui daremos navegação para a próxima tela do app
+      // Salva a sessão localmente no dispositivo
+      await AsyncStorage.setItem("usuario_logado", JSON.stringify(usuarioLogado));
+
+      // Redireciona para a tela do Cliente substituindo a rota no histórico
+      router.replace("/(tabs)/Cliente/PaginaInicial");
     } catch (err) {
       setErro("*Ocorreu um erro ao fazer login.");
     } finally {
