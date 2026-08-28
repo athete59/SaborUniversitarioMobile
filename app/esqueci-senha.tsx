@@ -1,5 +1,13 @@
+import { BerkshireSwash_400Regular } from "@expo-google-fonts/berkshire-swash";
+import {
+  Inter_400Regular,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  useFonts,
+} from "@expo-google-fonts/inter";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -12,17 +20,9 @@ import {
   View,
 } from "react-native";
 
-import { BerkshireSwash_400Regular } from "@expo-google-fonts/berkshire-swash";
-import {
-  Inter_400Regular,
-  Inter_600SemiBold,
-  Inter_700Bold,
-  useFonts,
-} from "@expo-google-fonts/inter";
+import { buscarUsuarioPorEmail } from "../services/usuarioService";
 
-import { supabase } from "../../services/supabase";
-
-export default function Login() {
+export default function EsqueceuSenha() {
   const router = useRouter();
 
   const [fontsLoaded] = useFonts({
@@ -32,57 +32,60 @@ export default function Login() {
     InterBold: Inter_700Bold,
   });
 
-  const [email, setEmail] = useState<string>("");
-  const [senha, setSenha] = useState<string>("");
-  const [erro, setErro] = useState<string | null>(null);
+  const [segundos, setSegundos] = useState<number>(60);
+  const [codigoInput, setCodigoInput] = useState<string>("");
   const [carregando, setCarregando] = useState<boolean>(false);
 
-  if (!fontsLoaded) {
-    return null;
+  // Lógica do Temporizador
+  useEffect(() => {
+    let timer: any;
+    if (segundos > 0) {
+      timer = setTimeout(() => {
+        setSegundos((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [segundos]);
+
+  function reiniciarCodigo() {
+    setSegundos(60);
+    Alert.alert("Sucesso", "Novo código solicitado!");
   }
 
-  async function fazendoLogin() {
-    if (!email || !senha) {
-      setErro("*Preencha todos os campos.");
-      return;
-    }
-
+  async function verificarSenha() {
     setCarregando(true);
-    setErro(null);
 
     try {
-      // Consulta na tabela de usuários do Supabase
-      const { data: usuarios, error } = await supabase
-        .from("usuarios") // Nome da sua tabela de usuários
-        .select("*")
-        .eq("email", email.trim())
-        .eq("senha", senha)
-        .eq("estado", 1);
+      const email = await AsyncStorage.getItem("emailRecuperacao");
 
-      if (error) {
-        setErro("*Erro ao conectar ao servidor.");
+      if (!email) {
+        Alert.alert(
+          "Aviso",
+          "Digite o e-mail na tela de login antes de recuperar a senha.",
+        );
         setCarregando(false);
         return;
       }
 
-      if (!usuarios || usuarios.length === 0) {
-        setErro("*Email ou senha inválidos.");
+      const usuario = await buscarUsuarioPorEmail(email);
+
+      if (!usuario) {
+        Alert.alert("Erro", "E-mail não encontrado.");
         setCarregando(false);
         return;
       }
 
-      const usuarioLogado = usuarios[0];
-      Alert.alert(
-        "Sucesso",
-        `Bem-vindo(a), ${usuarioLogado.nome || "usuário"}!`,
-      );
-
-      // Aqui daremos navegação para a próxima tela do app
-    } catch (err) {
-      setErro("*Ocorreu um erro ao fazer login.");
+      // Redireciona para a tela de redefinição de senha
+      router.push("/redefinir-senha" as any);
+    } catch (error) {
+      Alert.alert("Erro", "Ocorreu um erro ao verificar os dados.");
     } finally {
       setCarregando(false);
     }
+  }
+
+  if (!fontsLoaded) {
+    return null;
   }
 
   return (
@@ -96,60 +99,54 @@ export default function Login() {
         bounces={false}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.formCard}>
-          <Text style={styles.h2Title}>Acesse a sua conta</Text>
+        <View style={[styles.formCard, styles.espacamento]}>
+          <Text style={styles.h2Title}>Redefinir Senha</Text>
 
           <View style={styles.loginDiv}>
-            <Text style={styles.h3Subtitle}>
-              Entre com o seu email e a sua senha
+            <Text style={[styles.h3Subtitle, styles.aumentar]}>
+              Preencha com o código de segurança recebido pelo e-mail
             </Text>
 
-            {erro && <Text style={styles.alerta}>{erro}</Text>}
-
             <TextInput
               style={styles.input}
-              placeholder="Email"
+              placeholder="Código de segurança"
               placeholderTextColor="#777777"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={email}
-              onChangeText={setEmail}
+              keyboardType="number-pad"
+              value={codigoInput}
+              onChangeText={setCodigoInput}
             />
 
-            <TextInput
-              style={styles.input}
-              placeholder="Senha"
-              placeholderTextColor="#777777"
-              secureTextEntry
-              value={senha}
-              onChangeText={setSenha}
-            />
+            {segundos > 0 ? (
+              <Text style={styles.timerText}>
+                Código válido por {segundos} segundos
+              </Text>
+            ) : (
+              <TouchableOpacity
+                onPress={reiniciarCodigo}
+                activeOpacity={0.7}
+                style={styles.espaco}
+              >
+                <Text style={styles.linkNovoCodigo}>Novo código de acesso</Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               style={styles.entrarButton}
-              onPress={fazendoLogin}
+              onPress={verificarSenha}
               disabled={carregando}
               activeOpacity={0.8}
             >
               {carregando ? (
                 <ActivityIndicator color="#ffffff" />
               ) : (
-                <Text style={styles.entrarButtonText}>Entrar</Text>
+                <Text style={styles.entrarButtonText}>Verificar</Text>
               )}
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            onPress={() => router.push("/esqueci-senha" as any)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.forgotPassword}>Esqueceu a senha?</Text>
+          <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
+            <Text style={styles.voltarLogin}>Voltar para o Login</Text>
           </TouchableOpacity>
-
-          <Text style={styles.termsText}>
-            Ao clicar em Entrar, você concorda com os termos de serviço e de
-            uso.
-          </Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -196,20 +193,26 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
+  espacamento: {
+    paddingVertical: 32,
+  },
   h2Title: {
     fontFamily: "InterBold",
     fontWeight: "700",
     fontSize: 22,
     color: "#000000",
     textAlign: "center",
-    marginBottom: 4,
+    marginBottom: 8,
     includeFontPadding: false,
   },
   loginDiv: {
     width: "100%",
     alignItems: "center",
     marginVertical: 10,
-    paddingVertical: 10,
+  },
+  aumentar: {
+    maxWidth: 300,
+    lineHeight: 22,
   },
   h3Subtitle: {
     fontFamily: "Inter",
@@ -217,16 +220,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#000000",
     textAlign: "center",
-    marginBottom: 12,
+    marginBottom: 16,
     includeFontPadding: false,
-  },
-  alerta: {
-    fontFamily: "InterSemiBold",
-    fontWeight: "600",
-    color: "#EA0505",
-    fontSize: 13,
-    marginBottom: 10,
-    textAlign: "center",
   },
   input: {
     width: 290,
@@ -238,8 +233,27 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     fontSize: 15,
     color: "#000000",
-    marginBottom: 14,
+    marginBottom: 12,
     includeFontPadding: false,
+  },
+  timerText: {
+    fontFamily: "Inter",
+    fontWeight: "400",
+    fontSize: 13,
+    color: "#000000",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  espaco: {
+    marginBottom: 16,
+  },
+  linkNovoCodigo: {
+    fontFamily: "InterSemiBold",
+    fontWeight: "600",
+    fontSize: 14,
+    color: "#000000",
+    textDecorationLine: "underline",
+    textAlign: "center",
   },
   entrarButton: {
     backgroundColor: "#FF7124",
@@ -250,7 +264,7 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 6,
+    marginTop: 4,
   },
   entrarButtonText: {
     color: "#ffffff",
@@ -259,24 +273,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     includeFontPadding: false,
   },
-  forgotPassword: {
+  voltarLogin: {
     fontFamily: "Inter",
     fontWeight: "400",
     color: "#000000",
     fontSize: 14,
     textDecorationLine: "underline",
-    marginTop: 6,
-    marginBottom: 18,
-    includeFontPadding: false,
-  },
-  termsText: {
-    fontFamily: "Inter",
-    fontWeight: "400",
-    fontSize: 12,
-    color: "#000000",
-    textAlign: "center",
-    lineHeight: 16,
-    width: 270,
+    marginTop: 14,
     includeFontPadding: false,
   },
 });
