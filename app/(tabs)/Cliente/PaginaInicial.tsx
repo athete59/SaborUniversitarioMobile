@@ -1,325 +1,188 @@
-import React, { useState, useEffect } from "react";
-
 import {
-
-    View,
-
-    Text,
-
-    FlatList,
-
-    StyleSheet,
-
+    Gabriela_400Regular,
+    useFonts as useGabriela,
+} from "@expo-google-fonts/gabriela";
+import { useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import {
     ActivityIndicator,
-
+    Alert,
+    Image,
     SafeAreaView,
-
-    Dimensions,
-
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
-import { useNavigation } from "@react-navigation/native";
-
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
 import { supabase } from "../../../services/supabase";
-
-
-
 import Header from "./Header";
-
 import Sidebar from "./SideBar";
 
-import Card_Cliente from "./CardCliente";
-
-
-
-// Interface dos dados do Supabase
-
-export interface Restaurante {
-
-    id: string;
-
-    nome: string;
-
-    imagem_url: string;
-
+interface Empresa {
+  id?: number;
+  id_empresa?: number;
+  idempresa?: number;
+  nome?: string;
+  nome_empresa?: string;
+  Nome?: string;
+  imagem?: string;
+  imagem_url?: string;
+  url_imagem?: string;
 }
-
-
-
-// Interface do item do carrinho
-
-export interface ItemCarrinho {
-
-    id: string;
-
-    nome: string;
-
-    preco: number;
-
-    quantidade: number;
-
-}
-
-
-
-const { width } = Dimensions.get("window");
-
-const NUM_COLUNAS = width > 700 ? 2 : 1; // 2 colunas em tablets/telas largas, 1 em smartphones
-
-
 
 export default function PaginaInicial() {
+  const router = useRouter();
+  const [sidebarAberta, setSidebarAberta] = useState(false);
+  const [empresas, setEmpresas] = useState<Empresa[]>([]);
+  const [carregando, setCarregando] = useState(true);
 
-    const navigation = useNavigation<any>();
+  // Carrega a fonte exata da web ("Gabriela")
+  const [gabrielaLoaded] = useGabriela({
+    Gabriela_400Regular,
+  });
 
+  useEffect(() => {
+    async function carregarEmpresas() {
+      try {
+        setCarregando(true);
+        const { data, error } = await supabase.from("empresas").select("*");
 
-
-    const [sidebarAberta, setSidebarAberta] = useState<boolean>(false);
-
-    const [restaurantes, setRestaurantes] = useState<Restaurante[]>([]);
-
-    const [carrinho, setCarrinho] = useState<ItemCarrinho[]>([]);
-
-    const [loading, setLoading] = useState<boolean>(true);
-
-
-
-    // Carrega o carrinho persistido no armazenamento local
-
-    useEffect(() => {
-
-        async function carregarCarrinho() {
-
-            try {
-
-                const carrinhoSalvo = await AsyncStorage.getItem("carrinho");
-
-                if (carrinhoSalvo) {
-
-                    setCarrinho(JSON.parse(carrinhoSalvo));
-
-                }
-
-            } catch (error) {
-
-                console.error("Erro ao carregar o carrinho:", error);
-
-            }
-
+        if (error) throw error;
+        if (data) {
+          setEmpresas(data);
         }
-
-
-
-        carregarCarrinho();
-
-    }, []);
-
-
-
-    // Busca a lista de restaurantes no Supabase
-
-    async function buscarRestaurantes() {
-
-        try {
-
-            setLoading(true);
-
-            const { data, error } = await supabase
-
-                .from("restaurantes")
-
-                .select("id, nome, imagem_url");
-
-
-
-            if (error) {
-
-                throw error;
-
-            }
-
-
-
-            if (data) {
-
-                setRestaurantes(data);
-
-            }
-
-        } catch (error) {
-
-            console.error("Erro ao carregar restaurantes do Supabase:", error);
-
-        } finally {
-
-            setLoading(false);
-
-        }
-
+      } catch (err) {
+        console.error("Erro ao carregar restaurantes:", err);
+        Alert.alert("Erro", "Não foi possível carregar os restaurantes.");
+      } finally {
+        setCarregando(false);
+      }
     }
 
+    carregarEmpresas();
+  }, []);
 
+  return (
+    <SafeAreaView style={styles.container}>
+      <Header
+        sidebarAberta={sidebarAberta}
+        setSidebarAberta={setSidebarAberta}
+      />
+      <Sidebar
+        sidebarAberta={sidebarAberta}
+        setSidebarAberta={setSidebarAberta}
+      />
 
-    useEffect(() => {
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {carregando ? (
+          <ActivityIndicator
+            size="large"
+            color="#FF7124"
+            style={{ marginTop: 40 }}
+          />
+        ) : (
+          empresas.map((item, index) => {
+            // Mapeamento dinâmico para pegar a propriedade correta do banco
+            const idEmpresa =
+              item.id_empresa ?? item.idempresa ?? item.id ?? index;
+            const nomeRestaurante =
+              item.nome || item.nome_empresa || item.Nome || "Restaurante";
+            const imagemUrl = item.imagem || item.imagem_url || item.url_imagem;
 
-        buscarRestaurantes();
-
-    }, []);
-
-
-
-    return (
-
-        <SafeAreaView style={styles.safeArea}>
-
-            <Header
-
-                sidebarAberta={sidebarAberta}
-
-                setSidebarAberta={setSidebarAberta}
-
-                carrinhoCount={carrinho.length}
-
-            />
-
-
-
-            <Sidebar
-
-                sidebarAberta={sidebarAberta}
-
-                setSidebarAberta={setSidebarAberta}
-
-            />
-
-
-
-            {loading ? (
-
-                <View style={styles.loadingContainer}>
-
-                    <ActivityIndicator size="large" color="#0066FF" />
-
+            return (
+              <TouchableOpacity
+                key={idEmpresa}
+                style={styles.cardRestaurante}
+                activeOpacity={0.85}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(tabs)/Cliente/Cardapio",
+                    params: { id: idEmpresa, nome: nomeRestaurante },
+                  } as any)
+                }
+              >
+                {/* .img-card: 80x80 (adaptado do 100x100 para proporção mobile), circular */}
+                <View style={styles.imgCardContainer}>
+                  {imagemUrl ? (
+                    <Image
+                      source={{ uri: imagemUrl }}
+                      style={styles.imgCard}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={[styles.imgCard, styles.placeholderImg]} />
+                  )}
                 </View>
 
-            ) : (
-
-                <FlatList
-
-                    data={restaurantes}
-
-                    keyExtractor={(item) => item.id}
-
-                    key={NUM_COLUNAS}
-
-                    numColumns={NUM_COLUNAS}
-
-                    refreshing={loading}
-
-                    onRefresh={buscarRestaurantes}
-
-                    contentContainerStyle={styles.gradCard}
-
-                    columnWrapperStyle={NUM_COLUNAS > 1 ? styles.colunaWrapper : undefined}
-
-                    renderItem={({ item }) => (
-
-                        <View style={styles.cardItem}>
-
-                            <Card_Cliente
-
-                                rest={item.nome}
-
-                                img={{ uri: item.imagem_url }}
-
-                                onPress={() => navigation.navigate("Cardapio", { id: item.id, nome: item.nome })}
-
-                            />
-
-                        </View>
-
-                    )}
-
-                    ListEmptyComponent={
-
-                        <Text style={styles.textoVazio}>Nenhum restaurante encontrado.</Text>
-
-                    }
-
-                />
-
-            )}
-
-        </SafeAreaView>
-
-    );
-
+                {/* .nome-restaurante: font-family: "Gabriela", color: white */}
+                <Text
+                  style={[
+                    styles.nomeRestaurante,
+                    gabrielaLoaded && { fontFamily: "Gabriela_400Regular" },
+                  ]}
+                  numberOfLines={2}
+                >
+                  {nomeRestaurante}
+                </Text>
+              </TouchableOpacity>
+            );
+          })
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
 }
 
-
-
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  scrollContent: {
+    padding: 20,
+    gap: 16,
+  },
+  /* .card-restaurante do CSS da Web */
+  cardRestaurante: {
+    backgroundColor: "#FF9C72", // background-color: #FF9C72
+    borderRadius: 22.4, // border-radius: 1.4em
+    padding: 12.8, // padding: 0.8em
+    flexDirection: "row", // layout em linha
+    alignItems: "center",
+    justifyContent: "flex-start", // alinhado à esquerda como na web
+    width: "100%",
 
-    safeArea: {
-
-        flex: 1,
-
-        backgroundColor: "#FFFFFF",
-
-    },
-
-    loadingContainer: {
-
-        flex: 1,
-
-        justifyContent: "center",
-
-        alignItems: "center",
-
-    },
-
-    // Equivalente ao container .grad_card
-
-    gradCard: {
-
-        paddingHorizontal: 20,
-
-        paddingVertical: 24,
-
-        maxWidth: 1200,
-
-        alignSelf: "center",
-
-        width: "100%",
-
-        gap: 24, // Espaçamento vertical entre linhas
-
-    },
-
-    colunaWrapper: {
-
-        gap: 24, // Espaçamento horizontal entre colunas (telas largas)
-
-    },
-
-    cardItem: {
-
-        flex: 1,
-
-    },
-
-    textoVazio: {
-
-        textAlign: "center",
-
-        marginTop: 40,
-
-        fontSize: 16,
-
-        color: "#6B7280",
-
-    },
-
-}); 
+    // box-shadow: 0px 0px 4px rgb(98, 22, 1)
+    shadowColor: "rgb(98, 22, 1)",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  /* .img-card do CSS da Web */
+  imgCardContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginRight: 20, // margin-right: 1.5em
+    overflow: "hidden",
+    backgroundColor: "#FFFFFF",
+  },
+  imgCard: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 40,
+  },
+  placeholderImg: {
+    backgroundColor: "#E0E0E0",
+  },
+  /* .nome-restaurante do CSS da Web */
+  nomeRestaurante: {
+    flex: 1,
+    color: "#FFFFFF", // color: white
+    fontSize: 22,
+    fontWeight: "400", // font-weight: 400
+  },
+});

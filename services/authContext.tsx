@@ -1,56 +1,60 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { Session, User } from "@supabase/supabase-js";
-import { supabase } from "./supabase";
 
 interface AuthContextData {
-    session: Session | null;
-    user: User | null;
-    loading: boolean;
-    signOut: () => Promise<void>;
+  user: any | null;
+  loading: boolean;
+  signInManual: (usuario: any) => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const [session, setSession] = useState<Session | null>(null);
-    const [loading, setLoading] = useState<boolean>(true);
+  const [user, setUser] = useState<any | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
-    useEffect(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setSession(session);
-            setLoading(false);
-        });
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            (_event, session) => {
-                setSession(session);
-                setLoading(false);
-            }
-        );
-
-        return () => {
-            subscription.unsubscribe();
-        };
-    }, []);
-
-    async function signOut() {
-        await supabase.auth.signOut();
+  useEffect(() => {
+    async function carregarUsuarioSalvo() {
+      try {
+        const usuarioSalvo = await AsyncStorage.getItem("usuario_logado");
+        if (usuarioSalvo) {
+          setUser(JSON.parse(usuarioSalvo));
+        }
+      } catch (e) {
+        console.error("Erro ao carregar usuário:", e);
+      } finally {
+        setLoading(false);
+      }
     }
 
-    return (
-        <AuthContext.Provider
-            value={{
-                session,
-                user: session?.user ?? null,
-                loading,
-                signOut,
-            }}
-        >
-            {children}
-        </AuthContext.Provider>
-    );
+    carregarUsuarioSalvo();
+  }, []);
+
+  async function signInManual(usuario: any) {
+    await AsyncStorage.setItem("usuario_logado", JSON.stringify(usuario));
+    setUser(usuario);
+  }
+
+  async function signOut() {
+    await AsyncStorage.removeItem("usuario_logado");
+    setUser(null);
+  }
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        signInManual,
+        signOut,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
-    return useContext(AuthContext);
+  return useContext(AuthContext);
 }

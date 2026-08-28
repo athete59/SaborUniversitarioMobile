@@ -1,45 +1,38 @@
 import { Tabs } from "expo-router";
 import React from "react";
-import { Platform } from "react-native";
 
-import { HapticTab } from "@/components/haptic-tab";
-import { IconSymbol } from "@/components/ui/icon-symbol";
-
-export default function TabLayout() {
+export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        // Força a cor dos ícones ativos para o Laranja Temático do projeto
-        tabBarActiveTintColor: "#FF7124",
-        tabBarInactiveTintColor: "#888888",
         headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarStyle: {
-          backgroundColor: "#ffffff", // Garante a barra de abas inferior branca
-          borderTopWidth: 1,
-          borderTopColor: "#e0e0e0",
-          height: Platform.OS === "ios" ? 88 : 60,
-        },
+        tabBarActiveTintColor: "#FF7124",
+        tabBarInactiveTintColor: "#777777",
       }}
     >
+      {/* Esconde a tela de login da barra inferior */}
       <Tabs.Screen
         name="index"
         options={{
-          title: "Login",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="lock.fill" color={color} />
-          ),
+          href: null,
         }}
       />
+
+      {/* Exibe a Tela Principal do Cliente */}
       <Tabs.Screen
-        name="explore"
+        name="Cliente/PaginaInicial"
         options={{
-          title: "Explore",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="paperplane.fill" color={color} />
-          ),
+          title: "Início",
         }}
       />
+
+      {/* Oculta componentes e sub-rotas da barra inferior */}
+      <Tabs.Screen name="explore" options={{ href: null }} />
+      <Tabs.Screen name="redefinir-senha" options={{ href: null }} />
+      <Tabs.Screen name="Cliente/Cardapio" options={{ href: null }} />
+      <Tabs.Screen name="Cliente/CardCliente" options={{ href: null }} />
+      <Tabs.Screen name="Cliente/SideBar" options={{ href: null }} />
+      <Tabs.Screen name="Cliente/Header" options={{ href: null }} />
     </Tabs>
   );
 }

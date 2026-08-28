@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -11,7 +12,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { BerkshireSwash_400Regular } from "@expo-google-fonts/berkshire-swash";
 import {
@@ -21,10 +21,12 @@ import {
   useFonts,
 } from "@expo-google-fonts/inter";
 
+import { useAuth } from "../../services/authContext";
 import { supabase } from "../../services/supabase";
 
 export default function Login() {
   const router = useRouter();
+  const auth = useAuth();
 
   const [fontsLoaded] = useFonts({
     BerkshireSwash: BerkshireSwash_400Regular,
@@ -52,35 +54,45 @@ export default function Login() {
     setErro(null);
 
     try {
-      // Consulta na tabela de usuários do Supabase
+      const emailLimpo = email.trim();
+      const senhaLimpa = senha.trim();
+
+      // Consulta na tabela customizada 'usuarios'
       const { data: usuarios, error } = await supabase
         .from("usuarios")
         .select("*")
-        .eq("email", email.trim())
-        .eq("senha", senha)
-        .eq("estado", 1);
+        .eq("email", emailLimpo)
+        .eq("senha", senhaLimpa);
 
       if (error) {
-        setErro("*Erro ao conectar ao servidor.");
-        setCarregando(false);
+        setErro("*Erro no Supabase: " + error.message);
         return;
       }
 
       if (!usuarios || usuarios.length === 0) {
-        setErro("*Email ou senha inválidos.");
-        setCarregando(false);
+        setErro("*Email ou senha incorretos.");
         return;
       }
 
       const usuarioLogado = usuarios[0];
 
-      // Salva a sessão localmente no dispositivo
-      await AsyncStorage.setItem("usuario_logado", JSON.stringify(usuarioLogado));
+      // 1. Notifica o AuthContext se houver método manual ou salva no AsyncStorage
+      if (auth && (auth as any).signInManual) {
+        await (auth as any).signInManual(usuarioLogado);
+      } else {
+        await AsyncStorage.setItem(
+          "usuario_logado",
+          JSON.stringify(usuarioLogado),
+        );
+      }
 
-      // Redireciona para a tela do Cliente substituindo a rota no histórico
-      router.replace("/(tabs)/Cliente/PaginaInicial");
-    } catch (err) {
-      setErro("*Ocorreu um erro ao fazer login.");
+      // 2. Redirecionamento de rota
+      router.replace("/Cliente/PaginaInicial");
+    } catch (err: any) {
+      Alert.alert(
+        "Erro",
+        err?.message || "Ocorreu um erro ao acessar a conta.",
+      );
     } finally {
       setCarregando(false);
     }
@@ -199,7 +211,6 @@ const styles = StyleSheet.create({
   },
   h2Title: {
     fontFamily: "InterBold",
-    fontWeight: "700",
     fontSize: 22,
     color: "#000000",
     textAlign: "center",
@@ -214,7 +225,6 @@ const styles = StyleSheet.create({
   },
   h3Subtitle: {
     fontFamily: "Inter",
-    fontWeight: "400",
     fontSize: 14,
     color: "#000000",
     textAlign: "center",
@@ -223,7 +233,6 @@ const styles = StyleSheet.create({
   },
   alerta: {
     fontFamily: "InterSemiBold",
-    fontWeight: "600",
     color: "#EA0505",
     fontSize: 13,
     marginBottom: 10,
@@ -236,7 +245,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 11,
     fontFamily: "Inter",
-    fontWeight: "400",
     fontSize: 15,
     color: "#000000",
     marginBottom: 14,
@@ -256,13 +264,11 @@ const styles = StyleSheet.create({
   entrarButtonText: {
     color: "#ffffff",
     fontFamily: "InterBold",
-    fontWeight: "700",
     fontSize: 16,
     includeFontPadding: false,
   },
   forgotPassword: {
     fontFamily: "Inter",
-    fontWeight: "400",
     color: "#000000",
     fontSize: 14,
     textDecorationLine: "underline",
@@ -272,7 +278,6 @@ const styles = StyleSheet.create({
   },
   termsText: {
     fontFamily: "Inter",
-    fontWeight: "400",
     fontSize: 12,
     color: "#000000",
     textAlign: "center",

@@ -1,87 +1,91 @@
+import { useRouter } from "expo-router";
 import React from "react";
 import {
-    Text,
-    Image,
-    StyleSheet,
-    Pressable,
     Alert,
+    Image,
     ImageSourcePropType,
+    Pressable,
+    StyleSheet,
+    Text,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
 
 interface CardClienteProps {
-    rest: string;
-    img: ImageSourcePropType | { uri: string };
-    onPress?: () => void;
+  rest: string;
+  img: ImageSourcePropType | { uri: string };
+  onPress?: () => void;
 }
 
 export default function Card_Cliente({ rest, img, onPress }: CardClienteProps) {
-    const navigation = useNavigation<any>();
+  const router = useRouter();
 
-    function abrirRestaurante() {
-        if (onPress) {
-            onPress();
-            return;
-        }
-
-        if (rest === "Restaurante Universitário") {
-            navigation.navigate("Home");
-        } else {
-            Alert.alert("Aviso", "Esse restaurante ainda não possui página.");
-        }
+  function abrirRestaurante() {
+    if (onPress) {
+      onPress();
+      return;
     }
 
-    return (
-        <Pressable
-            style={({ pressed }) => [
-                styles.cardRestaurante,
-                pressed && styles.cardPressionado,
-            ]}
-            onPress={abrirRestaurante}
-        >
-            <Image
-                source={img}
-                accessibilityLabel={rest}
-                style={styles.imgCard}
-                resizeMode="cover"
-            />
+    if (rest === "Restaurante Universitário") {
+      router.push("/(tabs)/Cliente/Cardapio" as any);
+    } else {
+      Alert.alert("Aviso", "Esse restaurante ainda não possui página.");
+    }
+  }
 
-            <Text style={styles.nomeRestaurante} numberOfLines={2}>
-                {rest}
-            </Text>
-        </Pressable>
-    );
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        styles.cardRestaurante,
+        pressed && styles.cardPressionado,
+      ]}
+      onPress={abrirRestaurante}
+    >
+      <Image
+        source={img}
+        accessibilityLabel={rest}
+        style={styles.imgCard}
+        resizeMode="cover"
+      />
+
+      <Text style={styles.nomeRestaurante} numberOfLines={2}>
+        {rest}
+      </Text>
+    </Pressable>
+  );
 }
 
 const styles = StyleSheet.create({
-    cardRestaurante: {
-        backgroundColor: "#FF9C72",
-        borderRadius: 22,
-        padding: 13,
-        width: "100%",
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "flex-start",
-        elevation: 4, // Sombra Android
-        shadowColor: "rgb(98, 22, 1)", // Sombra iOS
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.35,
-        shadowRadius: 4,
-    },
-    cardPressionado: {
-        backgroundColor: "#ff8754",
-    },
-    imgCard: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        marginRight: 24,
-        backgroundColor: "rgba(255, 255, 255, 0.2)",
-    },
-    nomeRestaurante: {
-        flex: 1,
-        fontSize: 20,
-        fontWeight: "400",
-        color: "#FFFFFF",
-    },
+  cardRestaurante: {
+    backgroundColor: "#FF9C72",
+    borderRadius: 16,
+    padding: 14,
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(0, 0, 0, 0.08)",
+  },
+  cardPressionado: {
+    backgroundColor: "#ff8754",
+  },
+  imgCard: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginRight: 16,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1.5,
+    borderColor: "#FFFFFF",
+  },
+  nomeRestaurante: {
+    flex: 1,
+    fontSize: 18,
+    fontFamily: "InterBold",
+    color: "#FFFFFF",
+  },
 });
