@@ -1,3 +1,10 @@
+import { BerkshireSwash_400Regular } from "@expo-google-fonts/berkshire-swash";
+import {
+  Inter_400Regular,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  useFonts,
+} from "@expo-google-fonts/inter";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -13,20 +20,10 @@ import {
   View,
 } from "react-native";
 
-import { BerkshireSwash_400Regular } from "@expo-google-fonts/berkshire-swash";
-import {
-  Inter_400Regular,
-  Inter_600SemiBold,
-  Inter_700Bold,
-  useFonts,
-} from "@expo-google-fonts/inter";
+import { atualizarSenha } from "../services/usuarioService";
 
-import { useAuth } from "../../services/authContext";
-import { supabase } from "../../services/supabase";
-
-export default function Login() {
+export default function RedefinirSenha() {
   const router = useRouter();
-  const auth = useAuth();
 
   const [fontsLoaded] = useFonts({
     BerkshireSwash: BerkshireSwash_400Regular,
@@ -35,64 +32,47 @@ export default function Login() {
     InterBold: Inter_700Bold,
   });
 
-  const [email, setEmail] = useState<string>("");
   const [senha, setSenha] = useState<string>("");
-  const [erro, setErro] = useState<string | null>(null);
+  const [confirmarSenha, setConfirmarSenha] = useState<string>("");
   const [carregando, setCarregando] = useState<boolean>(false);
 
   if (!fontsLoaded) {
     return null;
   }
 
-  async function fazendoLogin() {
-    if (!email || !senha) {
-      setErro("*Preencha todos os campos.");
+  async function Enviar() {
+    if (senha !== confirmarSenha) {
+      Alert.alert("Aviso", "As senhas não coincidem.");
       return;
     }
 
     setCarregando(true);
-    setErro(null);
 
     try {
-      const emailLimpo = email.trim();
-      const senhaLimpa = senha.trim();
+      // Equivalente ao localStorage.getItem("emailRecuperacao") da Web
+      const email = await AsyncStorage.getItem("emailRecuperacao");
 
-      // Consulta na tabela customizada 'usuarios'
-      const { data: usuarios, error } = await supabase
-        .from("usuarios")
-        .select("*")
-        .eq("email", emailLimpo)
-        .eq("senha", senhaLimpa);
-
-      if (error) {
-        setErro("*Erro no Supabase: " + error.message);
+      if (!email) {
+        Alert.alert("Aviso", "Nenhum e-mail encontrado para recuperação.");
+        setCarregando(false);
         return;
       }
 
-      if (!usuarios || usuarios.length === 0) {
-        setErro("*Email ou senha incorretos.");
+      const sucesso = await atualizarSenha(email, senha);
+
+      if (!sucesso) {
+        Alert.alert("Erro", "Erro ao atualizar a senha.");
+        setCarregando(false);
         return;
       }
 
-      const usuarioLogado = usuarios[0];
+      // Equivalente ao localStorage.removeItem("emailRecuperacao")
+      await AsyncStorage.removeItem("emailRecuperacao");
 
-      // 1. Notifica o AuthContext se houver método manual ou salva no AsyncStorage
-      if (auth && (auth as any).signInManual) {
-        await (auth as any).signInManual(usuarioLogado);
-      } else {
-        await AsyncStorage.setItem(
-          "usuario_logado",
-          JSON.stringify(usuarioLogado),
-        );
-      }
-
-      // 2. Redirecionamento de rota
-      router.replace("/Cliente/PaginaInicial");
-    } catch (err: any) {
-      Alert.alert(
-        "Erro",
-        err?.message || "Ocorreu um erro ao acessar a conta.",
-      );
+      // Redireciona para a tela de sucesso
+      router.push("/SenhaSucesso" as any);
+    } catch (error) {
+      Alert.alert("Erro", "Ocorreu um erro ao processar a solicitação.");
     } finally {
       setCarregando(false);
     }
@@ -110,24 +90,10 @@ export default function Login() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.formCard}>
-          <Text style={styles.h2Title}>Acesse a sua conta</Text>
+          <Text style={styles.h2Title}>Redefinir Senha</Text>
 
           <View style={styles.loginDiv}>
-            <Text style={styles.h3Subtitle}>
-              Entre com o seu email e a sua senha
-            </Text>
-
-            {erro && <Text style={styles.alerta}>{erro}</Text>}
-
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              placeholderTextColor="#777777"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={email}
-              onChangeText={setEmail}
-            />
+            <Text style={styles.h3Subtitle}>Preencha a sua nova senha</Text>
 
             <TextInput
               style={styles.input}
@@ -138,31 +104,28 @@ export default function Login() {
               onChangeText={setSenha}
             />
 
+            <TextInput
+              style={styles.input}
+              placeholder="Confirme sua Senha"
+              placeholderTextColor="#777777"
+              secureTextEntry
+              value={confirmarSenha}
+              onChangeText={setConfirmarSenha}
+            />
+
             <TouchableOpacity
               style={styles.entrarButton}
-              onPress={fazendoLogin}
+              onPress={Enviar}
               disabled={carregando}
               activeOpacity={0.8}
             >
               {carregando ? (
                 <ActivityIndicator color="#ffffff" />
               ) : (
-                <Text style={styles.entrarButtonText}>Entrar</Text>
+                <Text style={styles.entrarButtonText}>Enviar</Text>
               )}
             </TouchableOpacity>
           </View>
-
-          <TouchableOpacity
-            onPress={() => router.push("/esqueci-senha" as any)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.forgotPassword}>Esqueceu a senha?</Text>
-          </TouchableOpacity>
-
-          <Text style={styles.termsText}>
-            Ao clicar em Entrar, você concorda com os termos de serviço e de
-            uso.
-          </Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -211,6 +174,7 @@ const styles = StyleSheet.create({
   },
   h2Title: {
     fontFamily: "InterBold",
+    fontWeight: "700",
     fontSize: 22,
     color: "#000000",
     textAlign: "center",
@@ -225,18 +189,12 @@ const styles = StyleSheet.create({
   },
   h3Subtitle: {
     fontFamily: "Inter",
+    fontWeight: "400",
     fontSize: 14,
     color: "#000000",
     textAlign: "center",
     marginBottom: 12,
     includeFontPadding: false,
-  },
-  alerta: {
-    fontFamily: "InterSemiBold",
-    color: "#EA0505",
-    fontSize: 13,
-    marginBottom: 10,
-    textAlign: "center",
   },
   input: {
     width: 290,
@@ -245,6 +203,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 11,
     fontFamily: "Inter",
+    fontWeight: "400",
     fontSize: 15,
     color: "#000000",
     marginBottom: 14,
@@ -264,25 +223,8 @@ const styles = StyleSheet.create({
   entrarButtonText: {
     color: "#ffffff",
     fontFamily: "InterBold",
+    fontWeight: "700",
     fontSize: 16,
-    includeFontPadding: false,
-  },
-  forgotPassword: {
-    fontFamily: "Inter",
-    color: "#000000",
-    fontSize: 14,
-    textDecorationLine: "underline",
-    marginTop: 6,
-    marginBottom: 18,
-    includeFontPadding: false,
-  },
-  termsText: {
-    fontFamily: "Inter",
-    fontSize: 12,
-    color: "#000000",
-    textAlign: "center",
-    lineHeight: 16,
-    width: 270,
     includeFontPadding: false,
   },
 });

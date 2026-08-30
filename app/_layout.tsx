@@ -18,11 +18,17 @@ function RouteProtector() {
       segments[0] === "redefinir-senha";
 
     if (!user && !estaNoLogin) {
-      // Se não tem usuário logado e tenta acessar área restrita -> vai pro login
-      router.replace("/");
+      // Se não tem usuário logado e tenta acessar qualquer tela -> força ir para o Login
+      router.replace("/" as any);
     } else if (user && estaNoLogin) {
-      // Se já está logado e tenta ir pro login -> vai pra tela inicial do cliente
-      router.replace("/Cliente/PaginaInicial");
+      // Se está logado e acessou a tela de login -> vai para a tela inicial correspondente
+      const emailUsuario = (user as any)?.email || "";
+
+      if (emailUsuario.toLowerCase() === "luiza@gmail.com") {
+        router.replace("/(tabs)/Empresa/CadastrarProduto" as any);
+      } else {
+        router.replace("/(tabs)/Cliente/PaginaInicial" as any);
+      }
     }
   }, [user, loading, segments]);
 
