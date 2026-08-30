@@ -1,29 +1,29 @@
 import {
-    ArbutusSlab_400Regular,
-    useFonts as useArbutus,
+  ArbutusSlab_400Regular,
+  useFonts as useArbutus,
 } from "@expo-google-fonts/arbutus-slab";
 import {
-    Belanosima_400Regular,
-    Belanosima_600SemiBold,
-    useFonts as useBelanosima,
+  Belanosima_400Regular,
+  Belanosima_600SemiBold,
+  useFonts as useBelanosima,
 } from "@expo-google-fonts/belanosima";
 import {
-    Gabriela_400Regular,
-    useFonts as useGabriela,
+  Gabriela_400Regular,
+  useFonts as useGabriela,
 } from "@expo-google-fonts/gabriela";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { supabase } from "../../../services/supabase";
@@ -39,6 +39,8 @@ interface Produto {
   idcategoria?: number;
   idempresa?: number;
 }
+
+const IMAGEM_PADRAO = "https://via.placeholder.com/150";
 
 export default function Cardapio() {
   const params = useLocalSearchParams();
@@ -98,9 +100,39 @@ export default function Cardapio() {
   }, [idRestaurante]);
 
   function formatarPreco(valor: any): string {
-    const num = Number(valor);
+    if (!valor) return "0.00 R$";
+    if (typeof valor === "number") return `${valor.toFixed(2)} R$`;
+
+    const apenasNumeros = String(valor)
+      .replace(/[^0-9.,]/g, "")
+      .replace(",", ".");
+    const num = parseFloat(apenasNumeros);
+
     if (isNaN(num)) return "0.00 R$";
     return `${num.toFixed(2)} R$`;
+  }
+
+  function obterFonteImagem(caminho?: string): { uri: string } {
+    if (!caminho || typeof caminho !== "string") {
+      return { uri: IMAGEM_PADRAO };
+    }
+
+    // Se já for uma URL pública completa do Supabase ou web (http/https)
+    if (caminho.startsWith("http://") || caminho.startsWith("https://")) {
+      return { uri: caminho };
+    }
+
+    // Caso você tenha salvo apenas o nome do arquivo (ex: "suco.png") no banco:
+    const nomeArquivo = caminho.replace(/^\//, "").replace(/^images\//, "");
+    const { data } = supabase.storage
+      .from("produtos")
+      .getPublicUrl(nomeArquivo);
+
+    if (data?.publicUrl) {
+      return { uri: data.publicUrl };
+    }
+
+    return { uri: IMAGEM_PADRAO };
   }
 
   function alterarQuantidade(nomeProduto: string, delta: number) {
@@ -133,7 +165,6 @@ export default function Cardapio() {
       />
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Título com a classe CSS .titulo (Gabriela, #fa8006, 32px) */}
         <Text style={styles.tituloWeb}>{nomeRestaurante}</Text>
 
         {carregando ? (
@@ -144,7 +175,7 @@ export default function Cardapio() {
           />
         ) : (
           <>
-            {/* Seção Bebidas (Classe CSS .categoria: Arbutus Slab, #F5670E, #FFE7D2) */}
+            {/* Bebidas */}
             <View style={styles.categoriaWeb}>
               <Text style={styles.categoriaTextoWeb}>• Bebidas</Text>
             </View>
@@ -162,11 +193,9 @@ export default function Cardapio() {
                   >
                     <View style={styles.imgProdutoWeb}>
                       <Image
-                        source={{
-                          uri: item.imagem || "https://via.placeholder.com/150",
-                        }}
+                        source={obterFonteImagem(item.imagem)}
                         style={styles.imgInside}
-                        resizeMode="contain"
+                        resizeMode="cover"
                       />
                     </View>
                     <Text style={styles.cardNomeWeb} numberOfLines={1}>
@@ -194,7 +223,6 @@ export default function Cardapio() {
                       </TouchableOpacity>
                     </View>
 
-                    {/* Botão idêntico ao .btn-card da web */}
                     <TouchableOpacity
                       style={styles.btnCardWeb}
                       onPress={() => adicionarCarrinho(item)}
@@ -209,7 +237,7 @@ export default function Cardapio() {
               )}
             </ScrollView>
 
-            {/* Seção Salgados */}
+            {/* Salgados */}
             <View style={styles.categoriaWeb}>
               <Text style={styles.categoriaTextoWeb}>• Salgados</Text>
             </View>
@@ -227,11 +255,9 @@ export default function Cardapio() {
                   >
                     <View style={styles.imgProdutoWeb}>
                       <Image
-                        source={{
-                          uri: item.imagem || "https://via.placeholder.com/150",
-                        }}
+                        source={obterFonteImagem(item.imagem)}
                         style={styles.imgInside}
-                        resizeMode="contain"
+                        resizeMode="cover"
                       />
                     </View>
                     <Text style={styles.cardNomeWeb} numberOfLines={1}>
@@ -284,7 +310,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FFFFFF",
   },
-  /* Correspondente a .titulo no index.css */
   tituloWeb: {
     textAlign: "center",
     color: "#fa8006",
@@ -292,7 +317,6 @@ const styles = StyleSheet.create({
     fontSize: 28,
     marginVertical: 20,
   },
-  /* Correspondente a .categoria no index.css */
   categoriaWeb: {
     backgroundColor: "#FFE7D2",
     paddingVertical: 10,
@@ -304,13 +328,11 @@ const styles = StyleSheet.create({
     color: "#F5670E",
     fontFamily: "ArbutusSlab_400Regular",
   },
-  /* Correspondente a .produtos-grid */
   produtosGridWeb: {
     paddingHorizontal: 20,
     gap: 16,
     paddingBottom: 24,
   },
-  /* Correspondente a .card-produto (216px x 285px na web) */
   cardProdutoWeb: {
     width: 175,
     height: 250,
@@ -320,7 +342,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  /* Correspondente a .img-produto */
   imgProdutoWeb: {
     width: "100%",
     height: 100,
@@ -331,10 +352,9 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   imgInside: {
-    width: "85%",
-    height: "85%",
+    width: "100%",
+    height: "100%",
   },
-  /* Correspondente a .card-produto h4 */
   cardNomeWeb: {
     fontSize: 16,
     fontWeight: "500",
@@ -342,14 +362,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginVertical: 2,
   },
-  /* Correspondente a .card-produto p */
   cardPrecoWeb: {
     fontSize: 16,
     fontWeight: "bold",
     color: "#FFFFFF",
     marginBottom: 4,
   },
-  /* Correspondente a .controle */
   controleWeb: {
     flexDirection: "row",
     alignItems: "center",
@@ -374,7 +392,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 14,
   },
-  /* Correspondente a .btn-card no index.css */
   btnCardWeb: {
     width: 128.46,
     height: 30.17,
