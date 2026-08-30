@@ -2,6 +2,7 @@ import {
     Gabriela_400Regular,
     useFonts as useGabriela,
 } from "@expo-google-fonts/gabriela";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -86,7 +87,18 @@ export default function SideBarEmpresa({
 
   const handleSair = async () => {
     setSidebarAberta(false);
-    await signOut();
+    try {
+      // Limpa os dados salvos do usuário
+      await AsyncStorage.removeItem("usuario_logado");
+      if (signOut) {
+        await signOut();
+      }
+    } catch (error) {
+      console.log("Erro ao encerrar sessão:", error);
+    } finally {
+      // Redireciona para a tela inicial de Login (index.tsx)
+      router.replace("/");
+    }
   };
 
   if (!sidebarAberta) return null;

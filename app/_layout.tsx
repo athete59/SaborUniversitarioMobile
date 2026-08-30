@@ -17,18 +17,9 @@ function RouteProtector() {
       segments[0] === "esqueci-senha" ||
       segments[0] === "redefinir-senha";
 
+    // Proteção de rota: se NÃO estiver logado e tentar acessar área protegida, vai para o Login (raiz)
     if (!user && !estaNoLogin) {
-      // Se não tem usuário logado e tenta acessar qualquer tela -> força ir para o Login
       router.replace("/" as any);
-    } else if (user && estaNoLogin) {
-      // Se está logado e acessou a tela de login -> vai para a tela inicial correspondente
-      const emailUsuario = (user as any)?.email || "";
-
-      if (emailUsuario.toLowerCase() === "luiza@gmail.com") {
-        router.replace("/(tabs)/Empresa/CadastrarProduto" as any);
-      } else {
-        router.replace("/(tabs)/Cliente/PaginaInicial" as any);
-      }
     }
   }, [user, loading, segments]);
 
