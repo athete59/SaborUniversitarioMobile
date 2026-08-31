@@ -1,14 +1,14 @@
 import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import {
-    Alert,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -27,7 +27,7 @@ export default function CadastrarProduto() {
   const [preco, setPreco] = useState("");
   const [estadoProduto, setEstadoProduto] = useState("");
   const [estoque, setEstoque] = useState("");
-  const [categoria, setCategoria] = useState("");
+  const [categoria, setCategoria] = useState(""); // Ex: 1 para Bebidas, 2 para Salgados
   const [imagemUri, setImagemUri] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
 
@@ -44,37 +44,51 @@ export default function CadastrarProduto() {
   };
 
   const salvarProduto = async () => {
-    if (!nome || !preco) {
-      Alert.alert("Atenção", "Preencha ao menos Nome e Preço.");
+    if (!nome || !preco || !categoria) {
+      Alert.alert(
+        "Atenção",
+        "Preencha Nome, Preço e Categoria (ex: 1 para Bebidas, 2 para Salgados).",
+      );
       return;
     }
 
     try {
       setCarregando(true);
-      let nomeArquivoImagem = "";
+      let urlImagemPublica = "";
 
+      // 1. Upload da imagem para o bucket 'produtos1' no Supabase
       if (imagemUri) {
         const response = await fetch(imagemUri);
-        const blob = await response.blob();
-        nomeArquivoImagem = `${Date.now()}.jpg`;
+        const arrayBuffer = await response.arrayBuffer();
+        const nomeArquivo = `${Date.now()}.jpg`;
 
-        const { error: uploadError } = await supabase.storage
-          .from("produtos")
-          .upload(nomeArquivoImagem, blob, {
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("produtos1")
+          .upload(nomeArquivo, arrayBuffer, {
             contentType: "image/jpeg",
+            upsert: true,
           });
 
         if (uploadError) throw uploadError;
+
+        // Obter URL pública gerada
+        const { data: publicUrlData } = supabase.storage
+          .from("produtos1")
+          .getPublicUrl(nomeArquivo);
+
+        urlImagemPublica = publicUrlData.publicUrl;
       }
 
+      // 2. Inserir o registro na tabela 'produtos'
       const { error: dbError } = await supabase.from("produtos").insert([
         {
           nome,
           descricao,
-          preco: `${preco} R$`,
-          estado: 1,
+          preco: preco.includes("R$") ? preco : `${preco} R$`,
+          idcategoria: parseInt(categoria, 10) || 1,
           idempresa: 1,
-          imagem: nomeArquivoImagem || null,
+          estado: estadoProduto ? parseInt(estadoProduto, 10) : 1,
+          imagem: urlImagemPublica || null,
         },
       ]);
 
@@ -82,6 +96,7 @@ export default function CadastrarProduto() {
 
       Alert.alert("Sucesso", "Produto cadastrado com sucesso!");
 
+      // Limpar formulário
       setCodigo("");
       setDescricao("");
       setNome("");
@@ -92,7 +107,10 @@ export default function CadastrarProduto() {
       setCategoria("");
       setImagemUri(null);
     } catch (error: any) {
-      Alert.alert("Erro ao cadastrar", error.message);
+      Alert.alert(
+        "Erro ao cadastrar",
+        error.message || "Ocorreu um erro ao salvar o produto.",
+      );
     } finally {
       setCarregando(false);
     }
@@ -174,6 +192,7 @@ export default function CadastrarProduto() {
                 value={preco}
                 onChangeText={setPreco}
                 keyboardType="numeric"
+                placeholder="Ex: 5.50"
               />
             </View>
 
@@ -185,6 +204,8 @@ export default function CadastrarProduto() {
                 style={styles.input}
                 value={estadoProduto}
                 onChangeText={setEstadoProduto}
+                keyboardType="numeric"
+                placeholder="Ex: 1"
               />
             </View>
 
@@ -202,12 +223,14 @@ export default function CadastrarProduto() {
 
             <View style={styles.campoGroup}>
               <Text style={styles.label}>
-                Categoria do produto:<Text style={styles.asterisco}>*</Text>
+                Categoria ID:<Text style={styles.asterisco}>*</Text>
               </Text>
               <TextInput
                 style={styles.input}
                 value={categoria}
                 onChangeText={setCategoria}
+                keyboardType="numeric"
+                placeholder="1 (Bebidas) ou 2 (Salgados)"
               />
             </View>
           </View>
