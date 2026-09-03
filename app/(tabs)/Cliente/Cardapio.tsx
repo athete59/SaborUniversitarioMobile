@@ -1,3 +1,18 @@
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+
+// Fontes Google Fonts
 import {
   ArbutusSlab_400Regular,
   useFonts as useArbutus,
@@ -11,24 +26,11 @@ import {
   Gabriela_400Regular,
   useFonts as useGabriela,
 } from "@expo-google-fonts/gabriela";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useLocalSearchParams } from "expo-router";
-import React, { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
 
-import { supabase } from "../../../services/supabase";
 import Header from "./Header";
 import Sidebar from "./SideBar";
+import { supabase } from "../../../services/supabase";
+import { useCartStore } from "../../stores/useCartStore";
 
 interface Produto {
   id_produto?: number;
@@ -44,6 +46,8 @@ const IMAGEM_PADRAO = "https://via.placeholder.com/150";
 
 export default function Cardapio() {
   const params = useLocalSearchParams();
+  const router = useRouter();
+
   const idRestaurante = params.id;
   const nomeRestaurante = params.nome
     ? String(params.nome)
@@ -58,8 +62,12 @@ export default function Cardapio() {
     bebidas: [],
     salgados: [],
   });
+
+  // Estado local apenas para o seletor transitório de quantidade antes de adicionar
   const [quantidades, setQuantidades] = useState<{ [key: string]: number }>({});
-  const [carrinho, setCarrinho] = useState<any[]>([]);
+
+  // Integração com Zustand Store Global
+  const adicionarItem = useCartStore((state) => state.adicionarItem);
 
   const [arbutusLoaded] = useArbutus({ ArbutusSlab_400Regular });
   const [belanosimaLoaded] = useBelanosima({
@@ -100,16 +108,18 @@ export default function Cardapio() {
   }, [idRestaurante]);
 
   function formatarPreco(valor: any): string {
-    if (!valor) return "0.00 R$";
-    if (typeof valor === "number") return `${valor.toFixed(2)} R$`;
+    if (!valor) return "R$ 0,00";
+    if (typeof valor === "number") {
+      return `R$ ${valor.toFixed(2).replace(".", ",")}`;
+    }
 
     const apenasNumeros = String(valor)
       .replace(/[^0-9.,]/g, "")
       .replace(",", ".");
     const num = parseFloat(apenasNumeros);
 
-    if (isNaN(num)) return "0.00 R$";
-    return `${num.toFixed(2)} R$`;
+    if (isNaN(num)) return "R$ 0,00";
+    return `R$ ${num.toFixed(2).replace(".", ",")}`;
   }
 
   function obterFonteImagem(caminho?: string): { uri: string } {
@@ -117,12 +127,10 @@ export default function Cardapio() {
       return { uri: IMAGEM_PADRAO };
     }
 
-    // Se já for uma URL pública completa do Supabase ou web (http/https)
     if (caminho.startsWith("http://") || caminho.startsWith("https://")) {
       return { uri: caminho };
     }
 
-    // Caso você tenha salvo apenas o nome do arquivo (ex: "suco.png") no banco:
     const nomeArquivo = caminho.replace(/^\//, "").replace(/^images\//, "");
     const { data } = supabase.storage
       .from("produtos")
@@ -135,29 +143,70 @@ export default function Cardapio() {
     return { uri: IMAGEM_PADRAO };
   }
 
-  function alterarQuantidade(nomeProduto: string, delta: number) {
+  function alterarQuantidade(chaveProduto: string, delta: number) {
     setQuantidades((prev) => {
-      const atual = prev[nomeProduto] || 1;
+      const atual = prev[chaveProduto] || 1;
       const novaQtd = atual + delta;
-      return { ...prev, [nomeProduto]: novaQtd > 0 ? novaQtd : 1 };
+      return { ...prev, [chaveProduto]: novaQtd > 0 ? novaQtd : 1 };
     });
   }
 
-  async function adicionarCarrinho(produto: Produto) {
-    const qtd = quantidades[produto.nome] || 1;
-    const item = { ...produto, quantidade: qtd };
-    const novoCarrinho = [...carrinho, item];
-    setCarrinho(novoCarrinho);
-    await AsyncStorage.setItem("carrinho", JSON.stringify(novoCarrinho));
+  // Despacha diretamente para o Zustand (refletindo no Header na hora)
+  function handleAdicionarCarrinho(produto: Produto) {
+    const chaveProduto = String(produto.id_produto || produto.id || produto.nome);
+    const qtd = quantidades[chaveProduto] || 1;
+
+    // Normaliza o preço para número
+    let precoNumerico = 0;
+    if (typeof produto.preco === "number") {
+      precoNumerico = produto.preco;
+    } else {
+      const parsed = parseFloat(
+        String(produto.preco).replace(/[^0-9.,]/g, "").replace(",", ".")
+      );
+      precoNumerico = isNaN(parsed) ? 0 : parsed;
+    }
+
+    // Adiciona a quantidade selecionada na store
+    for (let i = 0; i < qtd; i++) {
+      adicionarItem({
+        id: produto.id_produto || produto.id || chaveProduto,
+        nome: produto.nome,
+        preco: precoNumerico,
+        quantidade: 1,
+        imagem: obterFonteImagem(produto.imagem).uri,
+      });
+    }
+
+    // Reseta o contador local do card para 1
+    setQuantidades((prev) => ({ ...prev, [chaveProduto]: 1 }));
     Alert.alert("Sucesso", `${produto.nome} adicionado ao carrinho!`);
+  }
+
+  function irParaDetalhe(produto: Produto) {
+    router.push({
+      pathname: "/Cliente/DetalheProduto",
+      params: {
+        id: produto.id_produto || produto.id,
+        categoria: produto.idcategoria,
+      },
+    });
+  }
+
+  if (!arbutusLoaded || !belanosimaLoaded || !gabrielaLoaded) {
+    return (
+      <SafeAreaView style={styles.centerLoading}>
+        <ActivityIndicator size="large" color="#F5670E" />
+      </SafeAreaView>
+    );
   }
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header agora lê o total de itens reativamente direto da Store */}
       <Header
         sidebarAberta={sidebarAberta}
         setSidebarAberta={setSidebarAberta}
-        carrinho={carrinho}
       />
       <Sidebar
         sidebarAberta={sidebarAberta}
@@ -175,7 +224,7 @@ export default function Cardapio() {
           />
         ) : (
           <>
-            {/* Bebidas */}
+            {/* Seção Bebidas */}
             <View style={styles.categoriaWeb}>
               <Text style={styles.categoriaTextoWeb}>• Bebidas</Text>
             </View>
@@ -186,58 +235,65 @@ export default function Cardapio() {
               contentContainerStyle={styles.produtosGridWeb}
             >
               {produtos.bebidas.length > 0 ? (
-                produtos.bebidas.map((item, idx) => (
-                  <View
-                    key={item.id_produto || item.id || idx}
-                    style={styles.cardProdutoWeb}
-                  >
-                    <View style={styles.imgProdutoWeb}>
-                      <Image
-                        source={obterFonteImagem(item.imagem)}
-                        style={styles.imgInside}
-                        resizeMode="cover"
-                      />
-                    </View>
-                    <Text style={styles.cardNomeWeb} numberOfLines={1}>
-                      {item.nome}
-                    </Text>
-                    <Text style={styles.cardPrecoWeb}>
-                      {formatarPreco(item.preco)}
-                    </Text>
+                produtos.bebidas.map((item, idx) => {
+                  const chave = String(item.id_produto || item.id || idx);
+                  const qtdAtual = quantidades[chave] || 1;
 
-                    <View style={styles.controleWeb}>
-                      <TouchableOpacity
-                        style={styles.btnControle}
-                        onPress={() => alterarQuantidade(item.nome, -1)}
-                      >
-                        <Text style={styles.btnControleTexto}>-</Text>
-                      </TouchableOpacity>
-                      <Text style={styles.qtdTexto}>
-                        {quantidades[item.nome] || 1}
-                      </Text>
-                      <TouchableOpacity
-                        style={styles.btnControle}
-                        onPress={() => alterarQuantidade(item.nome, 1)}
-                      >
-                        <Text style={styles.btnControleTexto}>+</Text>
-                      </TouchableOpacity>
-                    </View>
-
+                  return (
                     <TouchableOpacity
-                      style={styles.btnCardWeb}
-                      onPress={() => adicionarCarrinho(item)}
-                      activeOpacity={0.85}
+                      key={chave}
+                      style={styles.cardProdutoWeb}
+                      activeOpacity={0.9}
+                      onPress={() => irParaDetalhe(item)}
                     >
-                      <Text style={styles.btnCardTextoWeb}>Adicionar</Text>
+                      <View style={styles.imgProdutoWeb}>
+                        <Image
+                          source={obterFonteImagem(item.imagem)}
+                          style={styles.imgInside}
+                          resizeMode="cover"
+                        />
+                      </View>
+                      <Text style={styles.cardNomeWeb} numberOfLines={1}>
+                        {item.nome}
+                      </Text>
+                      <Text style={styles.cardPrecoWeb}>
+                        {formatarPreco(item.preco)}
+                      </Text>
+
+                      <View style={styles.controleWeb}>
+                        <TouchableOpacity
+                          style={styles.btnControle}
+                          onPress={() => alterarQuantidade(chave, -1)}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={styles.btnControleTexto}>-</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.qtdTexto}>{qtdAtual}</Text>
+                        <TouchableOpacity
+                          style={styles.btnControle}
+                          onPress={() => alterarQuantidade(chave, 1)}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={styles.btnControleTexto}>+</Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      <TouchableOpacity
+                        style={styles.btnCardWeb}
+                        onPress={() => handleAdicionarCarrinho(item)}
+                        activeOpacity={0.85}
+                      >
+                        <Text style={styles.btnCardTextoWeb}>Adicionar</Text>
+                      </TouchableOpacity>
                     </TouchableOpacity>
-                  </View>
-                ))
+                  );
+                })
               ) : (
                 <Text style={styles.vazioText}>Nenhuma bebida disponível.</Text>
               )}
             </ScrollView>
 
-            {/* Salgados */}
+            {/* Seção Salgados */}
             <View style={styles.categoriaWeb}>
               <Text style={styles.categoriaTextoWeb}>• Salgados</Text>
             </View>
@@ -248,52 +304,59 @@ export default function Cardapio() {
               contentContainerStyle={styles.produtosGridWeb}
             >
               {produtos.salgados.length > 0 ? (
-                produtos.salgados.map((item, idx) => (
-                  <View
-                    key={item.id_produto || item.id || idx}
-                    style={styles.cardProdutoWeb}
-                  >
-                    <View style={styles.imgProdutoWeb}>
-                      <Image
-                        source={obterFonteImagem(item.imagem)}
-                        style={styles.imgInside}
-                        resizeMode="cover"
-                      />
-                    </View>
-                    <Text style={styles.cardNomeWeb} numberOfLines={1}>
-                      {item.nome}
-                    </Text>
-                    <Text style={styles.cardPrecoWeb}>
-                      {formatarPreco(item.preco)}
-                    </Text>
+                produtos.salgados.map((item, idx) => {
+                  const chave = String(item.id_produto || item.id || idx);
+                  const qtdAtual = quantidades[chave] || 1;
 
-                    <View style={styles.controleWeb}>
-                      <TouchableOpacity
-                        style={styles.btnControle}
-                        onPress={() => alterarQuantidade(item.nome, -1)}
-                      >
-                        <Text style={styles.btnControleTexto}>-</Text>
-                      </TouchableOpacity>
-                      <Text style={styles.qtdTexto}>
-                        {quantidades[item.nome] || 1}
-                      </Text>
-                      <TouchableOpacity
-                        style={styles.btnControle}
-                        onPress={() => alterarQuantidade(item.nome, 1)}
-                      >
-                        <Text style={styles.btnControleTexto}>+</Text>
-                      </TouchableOpacity>
-                    </View>
-
+                  return (
                     <TouchableOpacity
-                      style={styles.btnCardWeb}
-                      onPress={() => adicionarCarrinho(item)}
-                      activeOpacity={0.85}
+                      key={chave}
+                      style={styles.cardProdutoWeb}
+                      activeOpacity={0.9}
+                      onPress={() => irParaDetalhe(item)}
                     >
-                      <Text style={styles.btnCardTextoWeb}>Adicionar</Text>
+                      <View style={styles.imgProdutoWeb}>
+                        <Image
+                          source={obterFonteImagem(item.imagem)}
+                          style={styles.imgInside}
+                          resizeMode="cover"
+                        />
+                      </View>
+                      <Text style={styles.cardNomeWeb} numberOfLines={1}>
+                        {item.nome}
+                      </Text>
+                      <Text style={styles.cardPrecoWeb}>
+                        {formatarPreco(item.preco)}
+                      </Text>
+
+                      <View style={styles.controleWeb}>
+                        <TouchableOpacity
+                          style={styles.btnControle}
+                          onPress={() => alterarQuantidade(chave, -1)}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={styles.btnControleTexto}>-</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.qtdTexto}>{qtdAtual}</Text>
+                        <TouchableOpacity
+                          style={styles.btnControle}
+                          onPress={() => alterarQuantidade(chave, 1)}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={styles.btnControleTexto}>+</Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      <TouchableOpacity
+                        style={styles.btnCardWeb}
+                        onPress={() => handleAdicionarCarrinho(item)}
+                        activeOpacity={0.85}
+                      >
+                        <Text style={styles.btnCardTextoWeb}>Adicionar</Text>
+                      </TouchableOpacity>
                     </TouchableOpacity>
-                  </View>
-                ))
+                  );
+                })
               ) : (
                 <Text style={styles.vazioText}>Nenhum salgado disponível.</Text>
               )}
@@ -310,12 +373,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FFFFFF",
   },
+  centerLoading: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+  },
   tituloWeb: {
     textAlign: "center",
     color: "#fa8006",
     fontFamily: "Gabriela_400Regular",
     fontSize: 28,
     marginVertical: 20,
+    includeFontPadding: false,
   },
   categoriaWeb: {
     backgroundColor: "#FFE7D2",
@@ -327,6 +397,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: "#F5670E",
     fontFamily: "ArbutusSlab_400Regular",
+    includeFontPadding: false,
   },
   produtosGridWeb: {
     paddingHorizontal: 20,
@@ -357,16 +428,18 @@ const styles = StyleSheet.create({
   },
   cardNomeWeb: {
     fontSize: 16,
-    fontWeight: "500",
     color: "#FFFFFF",
     textAlign: "center",
     marginVertical: 2,
+    fontFamily: "Belanosima_600SemiBold",
+    includeFontPadding: false,
   },
   cardPrecoWeb: {
     fontSize: 16,
-    fontWeight: "bold",
     color: "#FFFFFF",
     marginBottom: 4,
+    fontFamily: "ArbutusSlab_400Regular",
+    includeFontPadding: false,
   },
   controleWeb: {
     flexDirection: "row",
@@ -391,6 +464,8 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "bold",
     fontSize: 14,
+    minWidth: 16,
+    textAlign: "center",
   },
   btnCardWeb: {
     width: 128.46,
@@ -409,6 +484,7 @@ const styles = StyleSheet.create({
     color: "#111111",
     fontFamily: "Belanosima_600SemiBold",
     fontSize: 15.57,
+    includeFontPadding: false,
   },
   vazioText: {
     color: "#777777",

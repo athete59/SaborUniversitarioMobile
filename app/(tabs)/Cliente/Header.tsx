@@ -1,22 +1,25 @@
-import {
-    BerkshireSwash_400Regular,
-    useFonts,
-} from "@expo-google-fonts/berkshire-swash";
-import { useRouter } from "expo-router";
-import React from "react";
+import React, { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useRouter, type Href } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  BerkshireSwash_400Regular,
+  useFonts,
+} from "@expo-google-fonts/berkshire-swash";
+
+import { useCartStore } from "../../stores/useCartStore";
 
 export interface ItemCarrinho {
-  id: string;
+  id: string | number;
   nome: string;
-  preco: number;
+  preco: number | string;
   quantidade: number;
+  imagem?: string;
 }
 
 interface HeaderProps {
   sidebarAberta: boolean;
   setSidebarAberta: React.Dispatch<React.SetStateAction<boolean>>;
-  carrinho?: ItemCarrinho[];
   nomeUsuario?: string;
   fichas?: number;
 }
@@ -24,48 +27,70 @@ interface HeaderProps {
 export default function Header({
   sidebarAberta,
   setSidebarAberta,
-  carrinho = [],
+  nomeUsuario,
+  fichas,
 }: HeaderProps) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+
+  // Escuta o array do carrinho direto da store global
+  const carrinho = useCartStore((state) => state.carrinho);
+
+  // Calcula o total de itens de forma reativa instantânea
+  const totalItens = useMemo(() => {
+    return carrinho.reduce((acc, item) => acc + item.quantidade, 0);
+  }, [carrinho]);
 
   const [fontsLoaded] = useFonts({
     BerkshireSwash: BerkshireSwash_400Regular,
   });
 
-  const totalItens = carrinho.reduce(
-    (total, item) => total + item.quantidade,
-    0,
-  );
-
   return (
-    <View style={styles.header}>
-      {/* Botão Perfil / Avatar (Lado Esquerdo) */}
+    <View
+      style={[
+        styles.header,
+        { paddingTop: Math.max(insets.top, 16) + 8 },
+      ]}
+    >
+      {/* Botão Perfil / Menu Lateral */}
       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={
+          nomeUsuario ? `Abrir menu de ${nomeUsuario}` : "Abrir menu lateral"
+        }
         style={({ pressed }) => [
           styles.perfilBtn,
           pressed && styles.botaoPressionado,
         ]}
-        onPress={() => setSidebarAberta(!sidebarAberta)}
-        hitSlop={8}
+        onPress={() => setSidebarAberta((prev) => !prev)}
+        hitSlop={10}
       >
         <View style={styles.foto} />
       </Pressable>
 
-      {/* Título Centralizado com espaço seguro para não sobrepor */}
+      {/* Título Centralizado */}
       <View style={styles.tituloContainer}>
-        <Text style={styles.titulo} numberOfLines={1}>
+        <Text
+          style={[styles.titulo, fontsLoaded && styles.tituloComFonte]}
+          numberOfLines={1}
+        >
           Sabor Universitário
         </Text>
+        {fichas !== undefined && (
+          <Text style={styles.subtitulo}>{fichas} fichas</Text>
+        )}
       </View>
 
-      {/* Botão Carrinho (Lado Direito) */}
+      {/* Botão Carrinho */}
       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Carrinho de compras, ${totalItens} itens`}
         style={({ pressed }) => [
           styles.carrinhoBtn,
           pressed && styles.carrinhoBtnPressionado,
         ]}
-        onPress={() => router.push("/modal" as any)}
-        hitSlop={8}
+        onPress={() => router.push("/(tabs)/Cliente/ResumoPedido" as Href)}
+        hitSlop={10}
       >
         <Text style={styles.carrinhoTexto}>🛒 {totalItens}</Text>
       </Pressable>
@@ -80,8 +105,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingTop: 44,
-    paddingBottom: 14,
+    paddingBottom: 12,
     elevation: 4,
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 2 },
@@ -106,15 +130,24 @@ const styles = StyleSheet.create({
   },
   titulo: {
     color: "#FFFFFF",
-    fontFamily: "BerkshireSwash",
     fontSize: 20,
+    fontWeight: "600",
     textAlign: "center",
     includeFontPadding: false,
+  },
+  tituloComFonte: {
+    fontFamily: "BerkshireSwash",
+    fontWeight: "normal",
+  },
+  subtitulo: {
+    color: "#FFE8D6",
+    fontSize: 12,
+    marginTop: 2,
   },
   carrinhoBtn: {
     backgroundColor: "#FFFFFF",
     borderRadius: 18,
-    paddingVertical: 5,
+    paddingVertical: 6,
     paddingHorizontal: 12,
     zIndex: 2,
     flexDirection: "row",
@@ -126,8 +159,8 @@ const styles = StyleSheet.create({
   },
   carrinhoTexto: {
     color: "#333333",
-    fontFamily: "InterBold",
     fontSize: 14,
+    fontWeight: "700",
   },
   botaoPressionado: {
     opacity: 0.75,

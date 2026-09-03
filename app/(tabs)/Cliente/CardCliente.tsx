@@ -1,12 +1,12 @@
 import { useRouter } from "expo-router";
 import React from "react";
 import {
-    Alert,
-    Image,
-    ImageSourcePropType,
-    Pressable,
-    StyleSheet,
-    Text,
+  Alert,
+  Image,
+  ImageSourcePropType,
+  Pressable,
+  StyleSheet,
+  Text,
 } from "react-native";
 
 interface CardClienteProps {

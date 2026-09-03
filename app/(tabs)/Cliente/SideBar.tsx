@@ -1,19 +1,19 @@
 import {
-    Gabriela_400Regular,
-    useFonts as useGabriela,
+  Gabriela_400Regular,
+  useFonts as useGabriela,
 } from "@expo-google-fonts/gabriela";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    Animated,
-    Dimensions,
-    Image,
-    Modal,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  Animated,
+  Dimensions,
+  Image,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
 
 import { supabase } from "../../../services/supabase";
