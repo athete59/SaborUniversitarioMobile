@@ -1,20 +1,20 @@
 import {
-    Gabriela_400Regular,
-    useFonts as useGabriela,
+  Gabriela_400Regular,
+  useFonts as useGabriela,
 } from "@expo-google-fonts/gabriela";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
-    Animated,
-    Dimensions,
-    Image,
-    Modal,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  Animated,
+  Dimensions,
+  Image,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
 
 import { useAuth } from "../../../services/authContext";
@@ -186,7 +186,7 @@ export default function SideBarEmpresa({
             <TouchableOpacity
               style={styles.itemMenu}
               activeOpacity={0.7}
-              onPress={() => navegarPara("/(tabs)/Empresa/FormasRecebimento")}
+              onPress={() => navegarPara("/(tabs)/Empresa/TelaTipoRecebimento")}
             >
               <Text style={styles.textoItemMenu}>Formas de Recebimento</Text>
             </TouchableOpacity>
