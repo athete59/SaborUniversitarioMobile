@@ -7,7 +7,7 @@ import {
 } from "@expo-google-fonts/inter";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -75,27 +75,21 @@ export default function Login() {
 
       const usuarioLogado = usuarios[0];
 
-      // 1. Notifica o AuthContext se houver método manual ou salva no AsyncStorage
+      // Salva a sessão
       if (auth && (auth as any).signInManual) {
         await (auth as any).signInManual(usuarioLogado);
       } else {
-        await AsyncStorage.setItem(
-          "usuario_logado",
-          JSON.stringify(usuarioLogado),
-        );
+        await AsyncStorage.setItem("usuario_logado", JSON.stringify(usuarioLogado));
       }
 
-      // 2. Redirecionamento de rota por e-mail
+      // Redirecionamento
       if (emailLimpo.toLowerCase() === "luiza@gmail.com") {
         router.replace("/(tabs)/Empresa/CadastrarProduto" as any);
       } else {
         router.replace("/(tabs)/Cliente/PaginaInicial" as any);
       }
     } catch (err: any) {
-      Alert.alert(
-        "Erro",
-        err?.message || "Ocorreu um erro ao acessar a conta.",
-      );
+      Alert.alert("Erro", err?.message || "Ocorreu um erro ao acessar a conta.");
     } finally {
       setCarregando(false);
     }
