@@ -75,17 +75,18 @@ export default function Login() {
 
       const usuarioLogado = usuarios[0];
 
-      // 1. Notifica o AuthContext se houver método manual ou salva no AsyncStorage
+      // Salva os dados essenciais do usuário no AsyncStorage para uso no carrinho/checkout/pix
+      await AsyncStorage.setItem(
+        "usuario_logado",
+        JSON.stringify(usuarioLogado)
+      );
+
+      // Notifica o AuthContext se houver método manual
       if (auth && (auth as any).signInManual) {
         await (auth as any).signInManual(usuarioLogado);
-      } else {
-        await AsyncStorage.setItem(
-          "usuario_logado",
-          JSON.stringify(usuarioLogado),
-        );
       }
 
-      // 2. Redirecionamento de rota por e-mail
+      // Redirecionamento de rota por e-mail (ou perfil)
       if (emailLimpo.toLowerCase() === "luiza@gmail.com") {
         router.replace("/(tabs)/Empresa/CadastrarProduto" as any);
       } else {
@@ -94,7 +95,7 @@ export default function Login() {
     } catch (err: any) {
       Alert.alert(
         "Erro",
-        err?.message || "Ocorreu um erro ao acessar a conta.",
+        err?.message || "Ocorreu um erro ao acessar a conta."
       );
     } finally {
       setCarregando(false);

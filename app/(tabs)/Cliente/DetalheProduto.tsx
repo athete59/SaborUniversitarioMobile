@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#FFFFFF",
     },
     backdrop: {
-        ...StyleSheet.absoluteFillObject,
+        ...StyleSheet.absoluteFill,
         backgroundColor: "rgba(0,0,0,0.4)",
         zIndex: 10,
     },
