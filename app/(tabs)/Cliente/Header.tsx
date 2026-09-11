@@ -1,13 +1,13 @@
+import {
+    BerkshireSwash_400Regular,
+    useFonts,
+} from "@expo-google-fonts/berkshire-swash";
+import { useRouter, type Href } from "expo-router";
 import React, { useMemo } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
-import { useRouter, type Href } from "expo-router";
-import {
-  BerkshireSwash_400Regular,
-  useFonts,
-} from "@expo-google-fonts/berkshire-swash";
 
 import { useAuth } from "../../../services/authContext";
-import { useCartStore } from "../../stores/useCartStore";
+import { useCartStore } from "../../../stores/useCartStore";
 
 export interface ItemCarrinho {
   id: string | number;
