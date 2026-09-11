@@ -1,33 +1,33 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Fontes
 import {
-    ArbutusSlab_400Regular,
-    useFonts as useArbutusSlab,
+  ArbutusSlab_400Regular,
+  useFonts as useArbutusSlab,
 } from "@expo-google-fonts/arbutus-slab";
 import {
-    Belanosima_400Regular,
-    Belanosima_600SemiBold,
-    useFonts as useBelanosima,
+  Belanosima_400Regular,
+  Belanosima_600SemiBold,
+  useFonts as useBelanosima,
 } from "@expo-google-fonts/belanosima";
 import {
-    Gabriela_400Regular,
-    useFonts as useGabriela,
+  Gabriela_400Regular,
+  useFonts as useGabriela,
 } from "@expo-google-fonts/gabriela";
 
 import { supabase } from "../../../services/supabase";
@@ -299,7 +299,6 @@ export default function DetalheProduto() {
 }
 
 const styles = StyleSheet.create({
-<<<<<<< HEAD
   screenWrapper: {
     flex: 1,
     backgroundColor: "#FFFFFF",
@@ -315,7 +314,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   backdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0,0,0,0.4)",
     zIndex: 10,
   },
@@ -468,173 +467,3 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
-=======
-    screenWrapper: {
-        flex: 1,
-        backgroundColor: "#FFFFFF",
-    },
-    container: {
-        padding: 16,
-        flexGrow: 1,
-    },
-    centerContainer: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "#FFFFFF",
-    },
-    backdrop: {
-        ...StyleSheet.absoluteFill,
-        backgroundColor: "rgba(0,0,0,0.4)",
-        zIndex: 10,
-    },
-    tituloSecao: {
-        textAlign: "center",
-        color: "#fa8006",
-        fontFamily: "Gabriela_400Regular",
-        fontSize: 28,
-        marginVertical: 20,
-    },
-    detalheBox: {
-        backgroundColor: "#F8E2CC",
-        borderRadius: 10,
-        padding: 20,
-        gap: 24,
-    },
-    detalheImagemContainer: {
-        width: "100%",
-        height: 250,
-        backgroundColor: "#FFFFFF",
-        borderRadius: 10,
-        justifyContent: "center",
-        alignItems: "center",
-        overflow: "hidden",
-    },
-    detalheImagem: {
-        width: "82%",
-        height: "82%",
-        resizeMode: "contain",
-    },
-    detalheInfo: {
-        flex: 1,
-    },
-    topoDetalhe: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "flex-start",
-    },
-    nomeProduto: {
-        fontFamily: "Belanosima_600SemiBold",
-        fontSize: 28,
-        color: "#000000",
-    },
-    precoDetalhe: {
-        fontFamily: "ArbutusSlab_400Regular",
-        fontSize: 30,
-        color: "#FF8000",
-        marginVertical: 12,
-    },
-    botoesDetalhe: {
-        flexDirection: "row",
-        gap: 12,
-        marginBottom: 24,
-    },
-    btnAdicionar: {
-        flex: 1,
-        height: 52,
-        backgroundColor: "#FFFFFF",
-        borderRadius: 12,
-        justifyContent: "center",
-        alignItems: "center",
-        elevation: 3,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.18,
-        shadowRadius: 5,
-    },
-    btnTextoAdicionar: {
-        fontFamily: "ArbutusSlab_400Regular",
-        fontSize: 16,
-        color: "#000000",
-    },
-    btnComprar: {
-        flex: 1,
-        height: 52,
-        backgroundColor: "#F5670E",
-        borderRadius: 12,
-        justifyContent: "center",
-        alignItems: "center",
-        elevation: 3,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.18,
-        shadowRadius: 5,
-    },
-    btnTextoComprar: {
-        fontFamily: "ArbutusSlab_400Regular",
-        fontSize: 16,
-        color: "#FFFFFF",
-    },
-    tituloDetalhe: {
-        fontFamily: "Gabriela_400Regular",
-        fontSize: 20,
-        color: "#111111",
-        marginBottom: 8,
-    },
-    descricaoProduto: {
-        fontFamily: "Belanosima_400Regular",
-        fontSize: 15,
-        color: "#333333",
-        lineHeight: 20,
-        marginBottom: 20,
-    },
-    inputObservacao: {
-        width: "100%",
-        height: 54,
-        backgroundColor: "#FFFFFF",
-        borderWidth: 1,
-        borderColor: "#999999",
-        borderRadius: 10,
-        paddingHorizontal: 14,
-        fontSize: 15,
-        marginBottom: 20,
-    },
-    inputFocado: {
-        borderColor: "#F47A00",
-    },
-    btnVoltar: {
-        paddingVertical: 12,
-        backgroundColor: "transparent",
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    btnTextoVoltar: {
-        fontFamily: "Belanosima_600SemiBold",
-        color: "#F5670E",
-        fontSize: 16,
-        textDecorationLine: "underline",
-    },
-    btnPressionado: {
-        opacity: 0.75,
-        transform: [{ translateY: 2 }],
-    },
-    textoVazio: {
-        fontSize: 18,
-        color: "#555",
-        marginBottom: 16,
-        fontFamily: "Belanosima_400Regular",
-    },
-    btnSimples: {
-        paddingVertical: 10,
-        paddingHorizontal: 20,
-        borderRadius: 6,
-        borderWidth: 1,
-        borderColor: "#F5670E",
-    },
-    btnTextoSimples: {
-        color: "#F5670E",
-        fontFamily: "Belanosima_600SemiBold",
-        fontSize: 16,
-    },
-});
->>>>>>> 47a39a549bc963b696eeb47ea6c296877d98d77c
