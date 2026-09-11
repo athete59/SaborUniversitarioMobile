@@ -76,7 +76,10 @@ export default function Login() {
       const rotaDestino = obterRotaInicialPorTipo(resultado.usuario.tipo);
       router.replace(rotaDestino as any);
     } catch (err: any) {
-      Alert.alert("Erro", err?.message || "Ocorreu um erro ao acessar a conta.");
+      Alert.alert(
+        "Erro",
+        err?.message || "Ocorreu um erro ao acessar a conta."
+      );
     } finally {
       setCarregando(false);
     }
