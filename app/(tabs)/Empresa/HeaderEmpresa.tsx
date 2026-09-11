@@ -9,6 +9,10 @@ interface HeaderEmpresaProps {
   onPressMenu: () => void;
 }
 
+/**
+ * Cabeçalho corporativo da Empresa com botão de menu e identidade visual.
+ * @param props Propriedades contendo callback para abertura da barra lateral
+ */
 export default function HeaderEmpresa({ onPressMenu }: HeaderEmpresaProps) {
   const [fontsLoaded] = useFonts({
     BerkshireSwash: BerkshireSwash_400Regular,

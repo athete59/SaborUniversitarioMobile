@@ -1,20 +1,20 @@
 import {
-    Gabriela_400Regular,
-    useFonts as useGabriela,
+  Gabriela_400Regular,
+  useFonts as useGabriela,
 } from "@expo-google-fonts/gabriela";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { supabase } from "../../../services/supabase";
 import Header from "./Header";
@@ -24,14 +24,21 @@ interface Empresa {
   id?: number;
   id_empresa?: number;
   idempresa?: number;
+  idusuario?: number;
   nome?: string;
   nome_empresa?: string;
   Nome?: string;
   imagem?: string;
   imagem_url?: string;
   url_imagem?: string;
+  foto?: string;
+  foto_url?: string;
+  [key: string]: any;
 }
 
+/**
+ * Tela inicial do cliente exibindo a lista de estabelecimentos conveniados (empresas).
+ */
 export default function PaginaInicial() {
   const router = useRouter();
   const [sidebarAberta, setSidebarAberta] = useState(false);
@@ -44,18 +51,32 @@ export default function PaginaInicial() {
   });
 
   useEffect(() => {
+    /**
+     * Consulta a lista de estabelecimentos conveniados registrados na tabela empresa no Supabase.
+     */
     async function carregarEmpresas() {
       try {
         setCarregando(true);
-        const { data, error } = await supabase.from("empresas").select("*");
 
-        if (error) throw error;
+        // Consulta prioritária na tabela 'empresa' (singular) e fallback para 'empresas' (plural)
+        let { data, error } = await supabase.from("empresa").select("*");
+
+        if (error || !data || data.length === 0) {
+          const resPlural = await supabase.from("empresas").select("*");
+          if (!resPlural.error && resPlural.data && resPlural.data.length > 0) {
+            data = resPlural.data;
+            error = null;
+          }
+        }
+
+        if (error && (!data || data.length === 0)) throw error;
+
         if (data) {
           setEmpresas(data);
         }
       } catch (err) {
-        console.error("Erro ao carregar restaurantes:", err);
-        Alert.alert("Erro", "Não foi possível carregar os restaurantes.");
+        console.error("Erro ao carregar estabelecimentos conveniados:", err);
+        Alert.alert("Erro", "Não foi possível carregar os estabelecimentos.");
       } finally {
         setCarregando(false);
       }
@@ -65,7 +86,7 @@ export default function PaginaInicial() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
       <Header
         sidebarAberta={sidebarAberta}
         setSidebarAberta={setSidebarAberta}
@@ -84,12 +105,13 @@ export default function PaginaInicial() {
           />
         ) : (
           empresas.map((item, index) => {
-            // Mapeamento dinâmico para pegar a propriedade correta do banco
+            // Mapeamento dinâmico para identificar id, nome e a coluna de imagem/foto da empresa
             const idEmpresa =
-              item.id_empresa ?? item.idempresa ?? item.id ?? index;
-            const nomeRestaurante =
-              item.nome || item.nome_empresa || item.Nome || "Restaurante";
-            const imagemUrl = item.imagem || item.imagem_url || item.url_imagem;
+              item.id ?? item.id_empresa ?? item.idempresa ?? index;
+            const nomeEmpresa =
+              item.nome || item.nome_empresa || item.Nome || "Estabelecimento";
+            const imagemUrl =
+              item.imagem_url || item.imagem || item.url_imagem || item.foto_url || item.foto;
 
             return (
               <TouchableOpacity
@@ -99,11 +121,11 @@ export default function PaginaInicial() {
                 onPress={() =>
                   router.push({
                     pathname: "/(tabs)/Cliente/Cardapio",
-                    params: { id: idEmpresa, nome: nomeRestaurante },
+                    params: { id: idEmpresa, nome: nomeEmpresa },
                   } as any)
                 }
               >
-                {/* .img-card: 80x80 (adaptado do 100x100 para proporção mobile), circular */}
+                {/* Imagem circular do estabelecimento */}
                 <View style={styles.imgCardContainer}>
                   {imagemUrl ? (
                     <Image
@@ -116,7 +138,7 @@ export default function PaginaInicial() {
                   )}
                 </View>
 
-                {/* .nome-restaurante: font-family: "Gabriela", color: white */}
+                {/* Nome do estabelecimento com a tipografia oficial */}
                 <Text
                   style={[
                     styles.nomeRestaurante,
@@ -124,7 +146,7 @@ export default function PaginaInicial() {
                   ]}
                   numberOfLines={2}
                 >
-                  {nomeRestaurante}
+                  {nomeEmpresa}
                 </Text>
               </TouchableOpacity>
             );

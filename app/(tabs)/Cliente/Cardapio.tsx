@@ -3,13 +3,13 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
 // Fontes Google Fonts
@@ -44,14 +44,17 @@ interface Produto {
 
 const IMAGEM_PADRAO = "https://via.placeholder.com/150";
 
+/**
+ * Tela do Cardápio que lista produtos por categoria (bebidas e salgados) e permite adicionar ao carrinho.
+ */
 export default function Cardapio() {
   const params = useLocalSearchParams();
   const router = useRouter();
 
-  const idRestaurante = params.id;
-  const nomeRestaurante = params.nome
+  const idEmpresa = params.id;
+  const nomeEmpresa = params.nome
     ? String(params.nome)
-    : "Restaurante Universitário";
+    : "Cardápio";
 
   const [sidebarAberta, setSidebarAberta] = useState<boolean>(false);
   const [carregando, setCarregando] = useState<boolean>(true);
@@ -77,12 +80,15 @@ export default function Cardapio() {
   const [gabrielaLoaded] = useGabriela({ Gabriela_400Regular });
 
   useEffect(() => {
+    /**
+     * Consulta os produtos disponíveis da empresa no Supabase e separa por categoria.
+     */
     async function carregarProdutosDoBanco() {
       try {
         setCarregando(true);
         let query = supabase.from("produtos").select("*");
 
-        const idNumerico = Number(idRestaurante);
+        const idNumerico = Number(idEmpresa);
         if (!isNaN(idNumerico) && idNumerico > 0) {
           query = query.eq("idempresa", idNumerico);
         }
@@ -105,8 +111,12 @@ export default function Cardapio() {
     }
 
     carregarProdutosDoBanco();
-  }, [idRestaurante]);
+  }, [idEmpresa]);
 
+  /**
+   * Formata valores numéricos ou textuais para o padrão monetário brasileiro (R$).
+   * @param valor Valor monetário a ser formatado
+   */
   function formatarPreco(valor: any): string {
     if (!valor) return "R$ 0,00";
     if (typeof valor === "number") {
@@ -122,6 +132,10 @@ export default function Cardapio() {
     return `R$ ${num.toFixed(2).replace(".", ",")}`;
   }
 
+  /**
+   * Retorna a fonte da imagem do produto a partir de URL absoluta ou Supabase Storage.
+   * @param caminho Caminho ou URL da imagem
+   */
   function obterFonteImagem(caminho?: string): { uri: string } {
     if (!caminho || typeof caminho !== "string") {
       return { uri: IMAGEM_PADRAO };
@@ -143,7 +157,12 @@ export default function Cardapio() {
     return { uri: IMAGEM_PADRAO };
   }
 
-  function alterarQuantidadeLocal(chaveProduto: string, delta: number) {
+  /**
+   * Modifica a quantidade do produto no seletor pré-adicionamento.
+   * @param chaveProduto Identificador do produto
+   * @param delta Variação na quantidade (+1 ou -1)
+   */
+  function alterarQuantidade(chaveProduto: string, delta: number) {
     setQuantidades((prev) => {
       const atual = prev[chaveProduto] || 1;
       const novaQtd = atual + delta;
@@ -151,7 +170,10 @@ export default function Cardapio() {
     });
   }
 
-  // MODIFICADO: Passa a quantidade selecionada diretamente de uma vez só
+  /**
+   * Despacha o produto e suas quantidades diretamente para a store global do carrinho.
+   * @param produto Dados do produto selecionado
+   */
   function handleAdicionarCarrinho(produto: Produto) {
     const chaveProduto = String(produto.id_produto || produto.id || produto.nome);
     const qtd = quantidades[chaveProduto] || 1;
@@ -200,7 +222,8 @@ export default function Cardapio() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
+      {/* Header agora lê o total de itens reativamente direto da Store */}
       <Header
         sidebarAberta={sidebarAberta}
         setSidebarAberta={setSidebarAberta}
@@ -211,7 +234,7 @@ export default function Cardapio() {
       />
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        <Text style={styles.tituloWeb}>{nomeRestaurante}</Text>
+        <Text style={styles.tituloWeb}>{nomeEmpresa}</Text>
 
         {carregando ? (
           <ActivityIndicator
@@ -261,7 +284,7 @@ export default function Cardapio() {
                       <View style={styles.controleWeb}>
                         <TouchableOpacity
                           style={styles.btnControle}
-                          onPress={() => alterarQuantidadeLocal(chave, -1)}
+                          onPress={() => alterarQuantidade(chave, -1)}
                           activeOpacity={0.8}
                         >
                           <Text style={styles.btnControleTexto}>-</Text>
@@ -269,7 +292,7 @@ export default function Cardapio() {
                         <Text style={styles.qtdTexto}>{qtdAtual}</Text>
                         <TouchableOpacity
                           style={styles.btnControle}
-                          onPress={() => alterarQuantidadeLocal(chave, 1)}
+                          onPress={() => alterarQuantidade(chave, 1)}
                           activeOpacity={0.8}
                         >
                           <Text style={styles.btnControleTexto}>+</Text>
@@ -331,7 +354,7 @@ export default function Cardapio() {
                       <View style={styles.controleWeb}>
                         <TouchableOpacity
                           style={styles.btnControle}
-                          onPress={() => alterarQuantidadeLocal(chave, -1)}
+                          onPress={() => alterarQuantidade(chave, -1)}
                           activeOpacity={0.8}
                         >
                           <Text style={styles.btnControleTexto}>-</Text>
@@ -339,7 +362,7 @@ export default function Cardapio() {
                         <Text style={styles.qtdTexto}>{qtdAtual}</Text>
                         <TouchableOpacity
                           style={styles.btnControle}
-                          onPress={() => alterarQuantidadeLocal(chave, 1)}
+                          onPress={() => alterarQuantidade(chave, 1)}
                           activeOpacity={0.8}
                         >
                           <Text style={styles.btnControleTexto}>+</Text>

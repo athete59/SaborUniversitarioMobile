@@ -37,6 +37,9 @@ import { useCartStore } from "../../stores/useCartStore";
 
 const FORMAS_PAGAMENTO = ["Dinheiro", "Pix", "Cartão"];
 
+/**
+ * Tela de revisão do pedido com seleção de forma de pagamento e finalização da compra.
+ */
 export default function ResumoPedido() {
     const router = useRouter();
 
@@ -76,6 +79,9 @@ export default function ResumoPedido() {
         }, 0);
     }, [itens]);
 
+    /**
+     * Envia o pedido e seus itens para o banco de dados Supabase e limpa o carrinho.
+     */
     async function confirmarPedido() {
         if (itens.length === 0) {
             Alert.alert("Aviso", "Seu carrinho está vazio.");
@@ -139,6 +145,7 @@ export default function ResumoPedido() {
             // Limpa o carrinho global do Zustand
             limparCarrinho();
 
+<<<<<<< HEAD
             // 3. Se for Pix, chama a Edge Function segura para obter o Copia e Cola do Mercado Pago
             if (formaPagamento === "Pix") {
                 const { data: pixData, error: erroPix } = await supabase.functions.invoke(
@@ -168,6 +175,19 @@ export default function ResumoPedido() {
             } else {
                 router.push("/pedidofeito" as any);
             }
+=======
+            Alert.alert(
+                "Pedido Confirmado!",
+                "Seu pedido foi registrado com sucesso. Acesse o QR Code para retirada na tela de Meus Pedidos.",
+                [
+                    {
+                        text: "Ver Meus Pedidos",
+                        onPress: () => router.push("/(tabs)/Cliente/MeusPedidos" as any),
+                    },
+                ]
+            );
+            router.push("/(tabs)/Cliente/MeusPedidos" as any);
+>>>>>>> 56ac468071bde1eefe789da40ff06d02f375a91e
         } catch (error: any) {
             Alert.alert("Erro", error.message || "Não foi possível confirmar o pedido.");
         } finally {

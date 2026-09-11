@@ -22,6 +22,9 @@ import {
 
 import { atualizarSenha } from "../services/usuarioService";
 
+/**
+ * Tela para redefinição e confirmação da nova senha de acesso.
+ */
 export default function RedefinirSenha() {
   const router = useRouter();
 
@@ -40,6 +43,9 @@ export default function RedefinirSenha() {
     return null;
   }
 
+  /**
+   * Valida a igualdade das senhas e atualiza a credencial no banco de dados.
+   */
   async function Enviar() {
     if (senha !== confirmarSenha) {
       Alert.alert("Aviso", "As senhas não coincidem.");
@@ -71,7 +77,7 @@ export default function RedefinirSenha() {
 
       // Redireciona para a tela de sucesso
       router.push("/SenhaSucesso" as any);
-    } catch (error) {
+    } catch {
       Alert.alert("Erro", "Ocorreu um erro ao processar a solicitação.");
     } finally {
       setCarregando(false);

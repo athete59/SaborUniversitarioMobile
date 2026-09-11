@@ -2,9 +2,8 @@ import {
   Gabriela_400Regular,
   useFonts as useGabriela,
 } from "@expo-google-fonts/gabriela";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Animated,
   Dimensions,
@@ -18,59 +17,30 @@ import {
 } from "react-native";
 
 import { useAuth } from "../../../services/authContext";
-import { supabase } from "../../../services/supabase";
 
 interface SideBarEmpresaProps {
   sidebarAberta: boolean;
   setSidebarAberta: (aberta: boolean) => void;
 }
 
-interface Empresa {
-  nome?: string;
-  foto_url?: string;
-}
-
 const LARGURA_SIDEBAR = 260;
 const { height: LARGURA_TELA_ALTURA } = Dimensions.get("window");
 
+/**
+ * Menu lateral deslizante para navegação da Empresa (versão mobile enxuta).
+ * @param props Propriedades de controle da visibilidade da barra lateral
+ */
 export default function SideBarEmpresa({
   sidebarAberta,
   setSidebarAberta,
 }: SideBarEmpresaProps) {
   const router = useRouter();
-  const { signOut } = useAuth();
-  const [empresa, setEmpresa] = useState<Empresa | null>(null);
-  const [animacaoLeft] = useState(new Animated.Value(-LARGURA_SIDEBAR));
+  const { user, signOut } = useAuth();
+  const [animacaoLeft] = useState(() => new Animated.Value(-LARGURA_SIDEBAR));
 
   const [gabrielaLoaded] = useGabriela({
     Gabriela_400Regular,
   });
-
-  useEffect(() => {
-    async function carregarEmpresa() {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-
-        if (user) {
-          const { data, error } = await supabase
-            .from("empresas")
-            .select("nome, foto_url")
-            .eq("id_usuario", user.id)
-            .single();
-
-          if (data && !error) {
-            setEmpresa(data);
-          }
-        }
-      } catch (err) {
-        console.log("Erro ao carregar dados da empresa na SideBar:", err);
-      }
-    }
-
-    carregarEmpresa();
-  }, []);
 
   useEffect(() => {
     Animated.timing(animacaoLeft, {
@@ -78,25 +48,27 @@ export default function SideBarEmpresa({
       duration: 300,
       useNativeDriver: false,
     }).start();
-  }, [sidebarAberta]);
+  }, [sidebarAberta, animacaoLeft]);
 
+  /**
+   * Fecha o menu lateral e navega para a rota especificada da empresa.
+   * @param rota Rota de navegação no expo-router
+   */
   const navegarPara = (rota: string) => {
     setSidebarAberta(false);
     router.push(rota as any);
   };
 
+  /**
+   * Encerra a sessão corporativa e redireciona para a tela inicial.
+   */
   const handleSair = async () => {
     setSidebarAberta(false);
     try {
-      // Limpa os dados salvos do usuário
-      await AsyncStorage.removeItem("usuario_logado");
-      if (signOut) {
-        await signOut();
-      }
+      await signOut();
     } catch (error) {
       console.log("Erro ao encerrar sessão:", error);
     } finally {
-      // Redireciona para a tela inicial de Login (index.tsx)
       router.replace("/");
     }
   };
@@ -119,9 +91,9 @@ export default function SideBarEmpresa({
           {/* Header da Sidebar */}
           <View style={styles.sidebarHeader}>
             <View style={styles.fotoContainer}>
-              {empresa?.foto_url ? (
+              {user?.perfil?.foto_url ? (
                 <Image
-                  source={{ uri: empresa.foto_url }}
+                  source={{ uri: user.perfil.foto_url }}
                   style={styles.fotoImg}
                   resizeMode="cover"
                 />
@@ -137,11 +109,11 @@ export default function SideBarEmpresa({
               ]}
               numberOfLines={1}
             >
-              {empresa?.nome || "Empresa Fulana"}
+              {user?.nome || user?.perfil?.nome || "Empresa"}
             </Text>
           </View>
 
-          {/* Lista do Menu da Empresa */}
+          {/* Lista do Menu da Empresa Enxuto */}
           <View style={styles.listaMenu}>
             <TouchableOpacity
               style={styles.itemMenu}
@@ -149,14 +121,6 @@ export default function SideBarEmpresa({
               onPress={() => navegarPara("/(tabs)/Empresa/Dashboard")}
             >
               <Text style={styles.textoItemMenu}>Dashboard</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.itemMenu}
-              activeOpacity={0.7}
-              onPress={() => navegarPara("/(tabs)/Empresa/Funcionarios")}
-            >
-              <Text style={styles.textoItemMenu}>Funcionários</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -170,14 +134,6 @@ export default function SideBarEmpresa({
             <TouchableOpacity
               style={styles.itemMenu}
               activeOpacity={0.7}
-              onPress={() => navegarPara("/(tabs)/Empresa/Categorias")}
-            >
-              <Text style={styles.textoItemMenu}>Categorias</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.itemMenu}
-              activeOpacity={0.7}
               onPress={() => navegarPara("/(tabs)/Empresa/FormasPagamento")}
             >
               <Text style={styles.textoItemMenu}>Formas de Pagamento</Text>
@@ -186,17 +142,9 @@ export default function SideBarEmpresa({
             <TouchableOpacity
               style={styles.itemMenu}
               activeOpacity={0.7}
-              onPress={() => navegarPara("/(tabs)/Empresa/TelaTipoRecebimento")}
+              onPress={() => navegarPara("/(tabs)/Empresa/FormasRecebimento")}
             >
               <Text style={styles.textoItemMenu}>Formas de Recebimento</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.itemMenu}
-              activeOpacity={0.7}
-              onPress={() => navegarPara("/(tabs)/Empresa/Beneficios")}
-            >
-              <Text style={styles.textoItemMenu}>Benefícios</Text>
             </TouchableOpacity>
 
             {/* Opção para deslogar da conta */}

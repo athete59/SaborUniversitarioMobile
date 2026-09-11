@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert } from 'react-native';
+import {
+    View,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    Alert,
+    StyleSheet,
+} from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import styles from './TabPagamentoTransferencia.styles';
 
-// Lista de bancos usada no Picker (equivalente às <option> do <select> original)
 const bancos: string[] = [
     '001 - Banco do Brasil S.A.',
     '003 - Banco da Amazônia S.A.',
@@ -63,7 +68,7 @@ const bancos: string[] = [
     '341 - Itaú Unibanco S.A.',
     '349 - AL5 S.A. Crédito',
     '366 - Société Générale Brasil S.A.',
-    '367 - Vitreo Distribuidora de Títulos e Valores Mobiliários S.A.',
+    '367 - Vitreo DTVM S.A.',
     '370 - Banco Mizuho do Brasil S.A.',
     '376 - Banco J. P. Morgan S.A.',
     '389 - Banco Mercantil do Brasil S.A.',
@@ -73,7 +78,7 @@ const bancos: string[] = [
     '464 - Banco Sumitomo Mitsui Brasileiro S.A.',
     '473 - Caixa Geral – Brasil S.A.',
     '479 - ItaúBank S.A.',
-    '487 - Deutsche Bank S.A. – Banco Alemão',
+    '487 - Deutsche Bank S.A.',
     '505 - Credit Suisse (Brasil) S.A.',
     '610 - Banco VR S.A.',
     '611 - Banco Paulista S.A.',
@@ -91,14 +96,14 @@ const bancos: string[] = [
     '743 - Banco Semear S.A.',
     '746 - Banco Modal S.A.',
     '747 - Banco Rabobank International do Brasil S.A.',
-    '748 - Sicredi – Sistema de Crédito Cooperativo',
+    '748 - Sicredi',
     '751 - Scotiabank Brasil S.A.',
-    '755 - Bank of America Merrill Lynch Banco Múltiplo S.A.',
-    '756 - Sicoob – Sistema de Cooperativas de Crédito',
+    '755 - Bank of America Merrill Lynch',
+    '756 - Sicoob',
     '757 - Banco KEB Hana do Brasil S.A.',
 ];
 
-type TipoConta = 'contaCorrente' | 'ContaPoupança' | '';
+export type TipoConta = 'contaCorrente' | 'ContaPoupança' | '';
 
 export interface DadosTransferencia {
     titular: string;
@@ -109,13 +114,15 @@ export interface DadosTransferencia {
     numeroDaConta: string;
 }
 
-interface TabPagamentoTransferenciaProps {
+interface TabRecebimentoTransferenciaProps {
     onSalvar?: (dados: DadosTransferencia) => void;
 }
 
-// Conversão de Forma_de_RecebimentoTrans para React Native.
-// Sem navegação de rota, já que agora é uma aba dentro da TelaTipoRecebimento.
-export default function TabPagamentoTransferencia({ onSalvar }: TabPagamentoTransferenciaProps) {
+/**
+ * Aba de formulário para configuração de dados bancários de transferência/TED da empresa.
+ * @param props Propriedades incluindo callback opcional para envio dos dados
+ */
+export default function TabRecebimentoTransferencia({ onSalvar }: TabRecebimentoTransferenciaProps) {
     const [titular, setTitular] = useState('');
     const [cpf, setCpf] = useState('');
     const [banco, setBanco] = useState('');
@@ -123,89 +130,98 @@ export default function TabPagamentoTransferencia({ onSalvar }: TabPagamentoTran
     const [agencia, setAgencia] = useState('');
     const [numeroDaConta, setNumeroDaConta] = useState('');
 
-    function dadosTransfer() {
-        if (!titular || !cpf || !banco || !tipoDeConta || !agencia || !numeroDaConta) {
-            Alert.alert('Atenção', 'Preencha todos os campos obrigatórios.');
+    /**
+     * Valida os campos do formulário e emite os dados bancários preenchidos.
+     */
+    function handleSalvar() {
+        if (!titular.trim() || !cpf.trim() || !banco || !tipoDeConta || !agencia.trim() || !numeroDaConta.trim()) {
+            Alert.alert('Atenção', 'Preencha todos os campos obrigatórios (*).');
             return;
         }
 
-        const dados: DadosTransferencia = { titular, cpf, banco, tipoDeConta, agencia, numeroDaConta };
+        const dados: DadosTransferencia = {
+            titular: titular.trim(),
+            cpf: cpf.trim(),
+            banco,
+            tipoDeConta,
+            agencia: agencia.trim(),
+            numeroDaConta: numeroDaConta.trim(),
+        };
 
         if (onSalvar) {
             onSalvar(dados);
         } else {
-            Alert.alert('Sucesso', 'Dados de transferência salvos.');
+            Alert.alert('Sucesso', 'Dados de transferência salvos com sucesso!');
         }
     }
 
     return (
-        <View style={styles.formTrans}>
-            <View style={styles.h2Wrapper}>
-                <Text style={styles.h2pag}>Transferência</Text>
-            </View>
-
+        <View style={styles.formContainer}>
             <View style={styles.campo}>
                 <Text style={styles.label}>
                     Nome do Titular <Text style={styles.obrigatorio}>*</Text>
                 </Text>
                 <TextInput
-                    style={styles.inputTitular}
+                    style={styles.input}
                     value={titular}
                     onChangeText={setTitular}
+                    placeholder="Ex: Razão Social ou Nome do Titular"
+                    placeholderTextColor="#9CA3AF"
                 />
             </View>
 
             <View style={styles.campo}>
                 <Text style={styles.label}>
-                    CPF <Text style={styles.obrigatorio}>*</Text>
+                    CPF / CNPJ <Text style={styles.obrigatorio}>*</Text>
                 </Text>
                 <TextInput
                     style={styles.input}
                     value={cpf}
                     onChangeText={setCpf}
                     keyboardType="numeric"
+                    placeholder="000.000.000-00"
+                    placeholderTextColor="#9CA3AF"
                 />
             </View>
 
-            <View style={styles.bloco}>
-                <View style={styles.blocoItem}>
-                    <Text style={styles.label}>
-                        Banco <Text style={styles.obrigatorio}>*</Text>
-                    </Text>
-                    <View style={styles.pickerWrapper}>
-                        <Picker
-                            style={styles.picker}
-                            selectedValue={banco}
-                            onValueChange={(valor: string) => setBanco(valor)}
-                        >
-                            <Picker.Item label="Selecione um banco" value="" enabled={false} />
-                            {bancos.map((b) => (
-                                <Picker.Item key={b} label={b} value={b} />
-                            ))}
-                        </Picker>
-                    </View>
-                </View>
-
-                <View style={styles.blocoItem}>
-                    <Text style={styles.label}>
-                        Tipo de Conta <Text style={styles.obrigatorio}>*</Text>
-                    </Text>
-                    <View style={styles.pickerWrapper}>
-                        <Picker
-                            style={styles.picker}
-                            selectedValue={tipoDeConta}
-                            onValueChange={(valor: TipoConta) => setTipoDeConta(valor)}
-                        >
-                            <Picker.Item label="Selecione o tipo de conta" value="" enabled={false} />
-                            <Picker.Item label="Conta Corrente" value="contaCorrente" />
-                            <Picker.Item label="Conta Poupança" value="ContaPoupança" />
-                        </Picker>
-                    </View>
+            <View style={styles.campo}>
+                <Text style={styles.label}>
+                    Banco <Text style={styles.obrigatorio}>*</Text>
+                </Text>
+                <View style={styles.pickerWrapper}>
+                    <Picker
+                        style={styles.picker}
+                        selectedValue={banco}
+                        onValueChange={(valor: string) => setBanco(valor)}
+                    >
+                        <Picker.Item label="Selecione um banco" value="" enabled={false} />
+                        {bancos.map((b) => (
+                            <Picker.Item key={b} label={b} value={b} />
+                        ))}
+                    </Picker>
                 </View>
             </View>
 
-            <View style={styles.bloco}>
-                <View style={styles.blocoItem}>
+            <View style={styles.campo}>
+                <Text style={styles.label}>
+                    Tipo de Conta <Text style={styles.obrigatorio}>*</Text>
+                </Text>
+                <View style={styles.pickerWrapper}>
+                    <Picker
+                        style={styles.picker}
+                        selectedValue={tipoDeConta}
+                        onValueChange={(valor: TipoConta) => setTipoDeConta(valor)}
+                    >
+                        <Picker.Item label="Selecione o tipo de conta" value="" enabled={false} />
+                        <Picker.Item label="Conta Corrente" value="contaCorrente" />
+                        <Picker.Item label="Conta Poupança" value="ContaPoupança" />
+                    </Picker>
+                </View>
+            </View>
+
+            {/* Linha Responsiva: Agência e Número da Conta */}
+            <View style={styles.linhaDupla}>
+                <View style={styles.coluna}>
                     <Text style={styles.label}>
                         Agência <Text style={styles.obrigatorio}>*</Text>
                     </Text>
@@ -214,10 +230,12 @@ export default function TabPagamentoTransferencia({ onSalvar }: TabPagamentoTran
                         value={agencia}
                         onChangeText={setAgencia}
                         keyboardType="numeric"
+                        placeholder="Ex: 1234"
+                        placeholderTextColor="#9CA3AF"
                     />
                 </View>
 
-                <View style={styles.blocoItem}>
+                <View style={styles.coluna}>
                     <Text style={styles.label}>
                         Número da Conta <Text style={styles.obrigatorio}>*</Text>
                     </Text>
@@ -226,17 +244,89 @@ export default function TabPagamentoTransferencia({ onSalvar }: TabPagamentoTran
                         value={numeroDaConta}
                         onChangeText={setNumeroDaConta}
                         keyboardType="numeric"
+                        placeholder="Ex: 56789-0"
+                        placeholderTextColor="#9CA3AF"
                     />
                 </View>
             </View>
 
             <TouchableOpacity
-                style={styles.salva}
-                onPress={dadosTransfer}
+                style={styles.btnSalvar}
+                onPress={handleSalvar}
                 activeOpacity={0.8}
             >
-                <Text style={styles.salvaTexto}>Salvar</Text>
+                <Text style={styles.btnSalvarTexto}>Salvar Dados de Transferência</Text>
             </TouchableOpacity>
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    formContainer: {
+        width: '100%',
+        paddingTop: 8,
+    },
+    campo: {
+        marginBottom: 16,
+        width: '100%',
+    },
+    linhaDupla: {
+        flexDirection: 'row',
+        gap: 12,
+        marginBottom: 16,
+        width: '100%',
+    },
+    coluna: {
+        flex: 1,
+    },
+    label: {
+        fontSize: 14,
+        fontWeight: '600',
+        marginBottom: 6,
+        color: '#374151',
+    },
+    obrigatorio: {
+        color: '#EF4444',
+        fontWeight: 'bold',
+    },
+    input: {
+        backgroundColor: '#F3F4F6',
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        borderRadius: 8,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        fontSize: 15,
+        color: '#111827',
+        minHeight: 48,
+        width: '100%',
+    },
+    pickerWrapper: {
+        backgroundColor: '#F3F4F6',
+        borderWidth: 1,
+        borderColor: '#D1D5DB',
+        borderRadius: 8,
+        minHeight: 48,
+        justifyContent: 'center',
+        overflow: 'hidden',
+        width: '100%',
+    },
+    picker: {
+        width: '100%',
+    },
+    btnSalvar: {
+        backgroundColor: '#FF7124',
+        borderRadius: 10,
+        paddingVertical: 13,
+        paddingHorizontal: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 8,
+        marginBottom: 32,
+    },
+    btnSalvarTexto: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+});

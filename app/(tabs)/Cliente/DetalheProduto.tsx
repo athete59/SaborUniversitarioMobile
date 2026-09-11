@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
     View,
     Text,
@@ -46,6 +46,9 @@ export interface Produto {
 
 const IMAGEM_PADRAO = "https://via.placeholder.com/300";
 
+/**
+ * Componente para exibição dos detalhes de um produto, permitindo adicioná-lo ao carrinho ou comprar diretamente.
+ */
 export default function DetalheProduto() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
@@ -67,6 +70,10 @@ export default function DetalheProduto() {
     const [arbutusLoaded] = useArbutusSlab({ ArbutusSlab_400Regular });
     const [gabrielaLoaded] = useGabriela({ Gabriela_400Regular });
 
+    /**
+     * Retorna a URL pública completa de uma imagem armazenada no Supabase Storage.
+     * @param caminho Caminho relativo ou URL absoluta da imagem
+     */
     function obterUrlImagem(caminho?: string): string {
         if (!caminho || typeof caminho !== "string") return IMAGEM_PADRAO;
         if (caminho.startsWith("http://") || caminho.startsWith("https://")) return caminho;
@@ -76,49 +83,65 @@ export default function DetalheProduto() {
         return data?.publicUrl || IMAGEM_PADRAO;
     }
 
-    const buscarProduto = useCallback(async () => {
-        if (!id) {
-            setCarregando(false);
-            return;
-        }
-        try {
-            setCarregando(true);
-            const { data, error } = await supabase
-                .from("produtos")
-                .select("*")
-                .eq("id", id)
-                .single();
+    useEffect(() => {
+        let isMounted = true;
 
-            if (error) throw error;
-
-            if (data) {
-                let precoConvertido = 0;
-                if (typeof data.preco === "number") {
-                    precoConvertido = data.preco;
-                } else if (typeof data.preco === "string") {
-                    const apenasNumeros = data.preco
-                        .replace(/[^0-9.,]/g, "")
-                        .replace(",", ".");
-                    precoConvertido = parseFloat(apenasNumeros) || 0;
-                }
-
-                setProduto({
-                    ...data,
-                    preco: precoConvertido,
-                    imagem: obterUrlImagem(data.imagem),
-                });
+        /**
+         * Busca as informações detalhadas do produto no Supabase.
+         */
+        async function carregarProduto() {
+            if (!id) {
+                if (isMounted) setCarregando(false);
+                return;
             }
-        } catch (err: any) {
-            Alert.alert("Erro", "Não foi possível carregar os detalhes do produto.");
-        } finally {
-            setCarregando(false);
+            try {
+                const { data, error } = await supabase
+                    .from("produtos")
+                    .select("*")
+                    .eq("id", id)
+                    .single();
+
+                if (error) throw error;
+
+                if (data && isMounted) {
+                    let precoConvertido = 0;
+                    if (typeof data.preco === "number") {
+                        precoConvertido = data.preco;
+                    } else if (typeof data.preco === "string") {
+                        const apenasNumeros = data.preco
+                            .replace(/[^0-9.,]/g, "")
+                            .replace(",", ".");
+                        precoConvertido = parseFloat(apenasNumeros) || 0;
+                    }
+
+                    setProduto({
+                        ...data,
+                        preco: precoConvertido,
+                        imagem: obterUrlImagem(data.imagem),
+                    });
+                }
+            } catch {
+                if (isMounted) {
+                    Alert.alert("Erro", "Não foi possível carregar os detalhes do produto.");
+                }
+            } finally {
+                if (isMounted) {
+                    setCarregando(false);
+                }
+            }
         }
+
+        carregarProduto();
+
+        return () => {
+            isMounted = false;
+        };
     }, [id]);
 
-    useEffect(() => {
-        buscarProduto();
-    }, [buscarProduto]);
-
+    /**
+     * Adiciona o produto atual ao carrinho de compras e opcionalmente redireciona ao checkout.
+     * @param redirecionarParaCheckout Define se deve navegar para a tela de resumo de pedido
+     */
     function handleAdicionarCarrinho(redirecionarParaCheckout = false) {
         if (!produto) return;
 

@@ -18,6 +18,9 @@ interface CartStore {
     obterTotalItens: () => number;
 }
 
+/**
+ * Store global do carrinho de compras utilizando Zustand e persistência no AsyncStorage.
+ */
 export const useCartStore = create<CartStore>()(
     persist(
         (set, get) => ({
