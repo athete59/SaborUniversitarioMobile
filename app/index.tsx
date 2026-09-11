@@ -5,7 +5,6 @@ import {
   Inter_700Bold,
   useFonts,
 } from "@expo-google-fonts/inter";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -21,11 +20,17 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useAuth } from "../services/authContext";
-import { supabase } from "../services/supabase";
+import {
+  autenticarUsuario,
+  obterRotaInicialPorTipo,
+} from "../services/usuarioService";
 
+/**
+ * Tela inicial de login com autenticação de usuário e redirecionamento por perfil.
+ */
 export default function Login() {
   const router = useRouter();
-  const auth = useAuth();
+  const { signInManual } = useAuth();
 
   const [fontsLoaded] = useFonts({
     BerkshireSwash: BerkshireSwash_400Regular,
@@ -43,6 +48,9 @@ export default function Login() {
     return null;
   }
 
+  /**
+   * Processa a autenticação do usuário, salva a sessão global e redireciona de acordo com o perfil.
+   */
   async function fazendoLogin() {
     if (!email || !senha) {
       setErro("*Preencha todos os campos.");
@@ -53,41 +61,20 @@ export default function Login() {
     setErro(null);
 
     try {
-      const emailLimpo = email.trim();
-      const senhaLimpa = senha.trim();
+      // Autenticação com verificação de tipo de perfil modularizada
+      const resultado = await autenticarUsuario(email, senha);
 
-      // Consulta na tabela customizada 'usuarios'
-      const { data: usuarios, error } = await supabase
-        .from("usuarios")
-        .select("*")
-        .eq("email", emailLimpo)
-        .eq("senha", senhaLimpa);
-
-      if (error) {
-        setErro("*Erro no Supabase: " + error.message);
+      if (!resultado.sucesso || !resultado.usuario) {
+        setErro(`*${resultado.erro || "Email ou senha incorretos."}`);
         return;
       }
 
-      if (!usuarios || usuarios.length === 0) {
-        setErro("*Email ou senha incorretos.");
-        return;
-      }
+      // Salva usuário no contexto global e AsyncStorage
+      await signInManual(resultado.usuario);
 
-      const usuarioLogado = usuarios[0];
-
-      // Salva a sessão
-      if (auth && (auth as any).signInManual) {
-        await (auth as any).signInManual(usuarioLogado);
-      } else {
-        await AsyncStorage.setItem("usuario_logado", JSON.stringify(usuarioLogado));
-      }
-
-      // Redirecionamento
-      if (emailLimpo.toLowerCase() === "luiza@gmail.com") {
-        router.replace("/(tabs)/Empresa/CadastrarProduto" as any);
-      } else {
-        router.replace("/(tabs)/Cliente/PaginaInicial" as any);
-      }
+      // Redirecionamento dinâmico pelo tipo de perfil (empresa, cliente, etc.)
+      const rotaDestino = obterRotaInicialPorTipo(resultado.usuario.tipo);
+      router.replace(rotaDestino as any);
     } catch (err: any) {
       Alert.alert("Erro", err?.message || "Ocorreu um erro ao acessar a conta.");
     } finally {

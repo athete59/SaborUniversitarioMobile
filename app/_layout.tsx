@@ -21,7 +21,7 @@ function RouteProtector() {
     if (!user && !estaNoLogin) {
       router.replace("/" as any);
     }
-  }, [user, loading, segments]);
+  }, [user, loading, segments, router]);
 
   if (loading) {
     return (

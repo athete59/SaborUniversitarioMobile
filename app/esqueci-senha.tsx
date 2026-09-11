@@ -22,6 +22,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { buscarUsuarioPorEmail } from "../services/usuarioService";
 
+/**
+ * Tela para validação do código de recuperação de senha enviado ao usuário.
+ */
 export default function EsqueceuSenha() {
   const router = useRouter();
 
@@ -47,11 +50,17 @@ export default function EsqueceuSenha() {
     return () => clearTimeout(timer);
   }, [segundos]);
 
+  /**
+   * Reinicia a contagem regressiva do temporizador de reenvio de código.
+   */
   function reiniciarCodigo() {
     setSegundos(60);
     Alert.alert("Sucesso", "Novo código solicitado!");
   }
 
+  /**
+   * Valida as credenciais temporárias e autoriza o redirecionamento para redefinição de senha.
+   */
   async function verificarSenha() {
     setCarregando(true);
 
@@ -77,7 +86,7 @@ export default function EsqueceuSenha() {
 
       // Redireciona para a tela de redefinição de senha
       router.push("/redefinir-senha" as any);
-    } catch (error) {
+    } catch {
       Alert.alert("Erro", "Ocorreu um erro ao verificar os dados.");
     } finally {
       setCarregando(false);
