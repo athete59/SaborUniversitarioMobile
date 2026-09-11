@@ -12,11 +12,16 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { useAuth } from "../../../services/authContext";
 import { supabase } from "../../../services/supabase";
 import HeaderEmpresa from "./HeaderEmpresa";
 import SideBarEmpresa from "./SideBarEmpresa";
 
+/**
+ * Tela de cadastro de novos produtos para estabelecimentos conveniados.
+ */
 export default function CadastrarProduto() {
+  const { user } = useAuth();
   const [sidebarAberta, setSidebarAberta] = useState(false);
 
   // Campos do formulário
@@ -31,6 +36,9 @@ export default function CadastrarProduto() {
   const [imagemUri, setImagemUri] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
 
+  /**
+   * Abre a galeria de fotos do dispositivo para seleção da imagem do produto.
+   */
   const selecionarImagem = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
@@ -43,6 +51,9 @@ export default function CadastrarProduto() {
     }
   };
 
+  /**
+   * Realiza o upload da imagem e cadastra os dados do novo produto no Supabase.
+   */
   const salvarProduto = async () => {
     if (!nome || !preco || !categoria) {
       Alert.alert(
@@ -62,7 +73,7 @@ export default function CadastrarProduto() {
         const arrayBuffer = await response.arrayBuffer();
         const nomeArquivo = `${Date.now()}.jpg`;
 
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from("produtos1")
           .upload(nomeArquivo, arrayBuffer, {
             contentType: "image/jpeg",
@@ -86,7 +97,7 @@ export default function CadastrarProduto() {
           descricao,
           preco: preco.includes("R$") ? preco : `${preco} R$`,
           idcategoria: parseInt(categoria, 10) || 1,
-          idempresa: 1,
+          idempresa: user?.perfil?.id || 1,
           estado: estadoProduto ? parseInt(estadoProduto, 10) : 1,
           imagem: urlImagemPublica || null,
         },
