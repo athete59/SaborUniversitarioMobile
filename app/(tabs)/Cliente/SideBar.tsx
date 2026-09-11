@@ -16,74 +16,63 @@ import {
   View,
 } from "react-native";
 
-import { supabase } from "../../../services/supabase";
+import { useAuth } from "../../../services/authContext";
 
 interface SideBarProps {
   sidebarAberta: boolean;
   setSidebarAberta: (aberta: boolean) => void;
 }
 
-interface Cliente {
-  nome?: string;
-  fichas?: number;
-  foto_url?: string;
-}
-
 const LARGURA_SIDEBAR = 260;
 const { height: LARGURA_TELA_ALTURA } = Dimensions.get("window");
 
+/**
+ * Menu lateral deslizante para navegação do cliente.
+ * @param props Propriedades de controle da visibilidade da barra lateral
+ */
 export default function SideBar({
   sidebarAberta,
   setSidebarAberta,
 }: SideBarProps) {
   const router = useRouter();
-  const [cliente, setCliente] = useState<Cliente | null>(null);
-  const [animacaoLeft] = useState(new Animated.Value(-LARGURA_SIDEBAR));
+  const { user, signOut } = useAuth();
+  const [animacaoLeft] = useState(() => new Animated.Value(-LARGURA_SIDEBAR));
 
   // Fonte "Gabriela" conforme utilizado na Web
   const [gabrielaLoaded] = useGabriela({
     Gabriela_400Regular,
   });
 
-  // Busca dados do usuário/cliente logado no Supabase
-  useEffect(() => {
-    async function carregarCliente() {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-
-        if (user) {
-          const { data, error } = await supabase
-            .from("clientes")
-            .select("nome, fichas, foto_url")
-            .eq("id_usuario", user.id)
-            .single();
-
-          if (data && !error) {
-            setCliente(data);
-          }
-        }
-      } catch (err) {
-        console.log("Erro ao carregar dados do cliente no SideBar:", err);
-      }
-    }
-
-    carregarCliente();
-  }, []);
-
-  // Animação de deslizar a sidebar (equivalente ao left: -300px -> left: 0 no CSS)
+  // Animação de deslizar a sidebar
   useEffect(() => {
     Animated.timing(animacaoLeft, {
       toValue: sidebarAberta ? 0 : -LARGURA_SIDEBAR,
       duration: 300,
       useNativeDriver: false,
     }).start();
-  }, [sidebarAberta]);
+  }, [sidebarAberta, animacaoLeft]);
 
+  /**
+   * Fecha o menu lateral e navega para a rota especificada.
+   * @param rota Caminho de destino no expo-router
+   */
   const navegarPara = (rota: string) => {
     setSidebarAberta(false);
     router.push(rota as any);
+  };
+
+  /**
+   * Encerra a sessão do usuário e redireciona para a tela de login.
+   */
+  const handleSair = async () => {
+    setSidebarAberta(false);
+    try {
+      await signOut();
+    } catch (error) {
+      console.log("Erro ao sair:", error);
+    } finally {
+      router.replace("/");
+    }
   };
 
   if (!sidebarAberta) return null;
@@ -106,9 +95,9 @@ export default function SideBar({
           {/* Header (.sidebar-header) */}
           <View style={styles.sidebarHeader}>
             <View style={styles.fotoContainer}>
-              {cliente?.foto_url ? (
+              {user?.perfil?.foto_url ? (
                 <Image
-                  source={{ uri: cliente.foto_url }}
+                  source={{ uri: user.perfil.foto_url }}
                   style={styles.fotoImg}
                   resizeMode="cover"
                 />
@@ -124,16 +113,7 @@ export default function SideBar({
               ]}
               numberOfLines={1}
             >
-              {cliente?.nome || "Usuário"}
-            </Text>
-
-            <Text
-              style={[
-                styles.fichas,
-                gabrielaLoaded && { fontFamily: "Gabriela_400Regular" },
-              ]}
-            >
-              Fichas: {cliente?.fichas ?? 0}
+              {user?.nome || "Usuário"}
             </Text>
           </View>
 
@@ -182,6 +162,15 @@ export default function SideBar({
               >
                 Meus Pedidos
               </Text>
+            </TouchableOpacity>
+
+            {/* Opção para deslogar */}
+            <TouchableOpacity
+              style={[styles.itemMenu, styles.itemSair]}
+              activeOpacity={0.7}
+              onPress={handleSair}
+            >
+              <Text style={styles.textoItemSair}>Sair da Conta</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -258,15 +247,26 @@ const styles = StyleSheet.create({
   listaMenu: {
     width: "100%",
   },
-  /* .sidebar ul li do CSS */
   itemMenu: {
     paddingVertical: 15,
     paddingHorizontal: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.2)", // border-bottom: 1px solid rgba(255,255,255,0.2)
+    borderBottomColor: "rgba(255, 255, 255, 0.2)",
   },
   textoItemMenu: {
     color: "#FFFFFF",
     fontSize: 18,
+  },
+  itemSair: {
+    marginTop: 20,
+    borderBottomWidth: 0,
+    backgroundColor: "rgba(255, 77, 77, 0.15)",
+    borderRadius: 8,
+  },
+  textoItemSair: {
+    color: "#FF6B6B",
+    fontSize: 16,
+    fontWeight: "bold",
+    textAlign: "center",
   },
 });

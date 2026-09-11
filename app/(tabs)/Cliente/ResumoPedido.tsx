@@ -37,6 +37,9 @@ import { useCartStore } from "../../stores/useCartStore";
 
 const FORMAS_PAGAMENTO = ["Dinheiro", "Pix", "Cartão"];
 
+/**
+ * Tela de revisão do pedido com seleção de forma de pagamento e finalização da compra.
+ */
 export default function ResumoPedido() {
     const router = useRouter();
 
@@ -76,6 +79,9 @@ export default function ResumoPedido() {
         }, 0);
     }, [itens]);
 
+    /**
+     * Envia o pedido e seus itens para o banco de dados Supabase e limpa o carrinho.
+     */
     async function confirmarPedido() {
         if (itens.length === 0) {
             Alert.alert("Aviso", "Seu carrinho está vazio.");
@@ -137,7 +143,17 @@ export default function ResumoPedido() {
             // Limpa a store do Zustand
             limparCarrinho();
 
-            router.push("/pedidofeito" as any);
+            Alert.alert(
+                "Pedido Confirmado!",
+                "Seu pedido foi registrado com sucesso. Acesse o QR Code para retirada na tela de Meus Pedidos.",
+                [
+                    {
+                        text: "Ver Meus Pedidos",
+                        onPress: () => router.push("/(tabs)/Cliente/MeusPedidos" as any),
+                    },
+                ]
+            );
+            router.push("/(tabs)/Cliente/MeusPedidos" as any);
         } catch (error: any) {
             Alert.alert("Erro", error.message || "Não foi possível confirmar o pedido.");
         } finally {

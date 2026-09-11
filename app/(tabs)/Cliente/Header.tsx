@@ -1,12 +1,12 @@
 import React, { useMemo } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter, type Href } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   BerkshireSwash_400Regular,
   useFonts,
 } from "@expo-google-fonts/berkshire-swash";
 
+import { useAuth } from "../../../services/authContext";
 import { useCartStore } from "../../stores/useCartStore";
 
 export interface ItemCarrinho {
@@ -21,17 +21,21 @@ interface HeaderProps {
   sidebarAberta: boolean;
   setSidebarAberta: React.Dispatch<React.SetStateAction<boolean>>;
   nomeUsuario?: string;
-  fichas?: number;
 }
 
+/**
+ * Cabeçalho unificado do cliente com botão de perfil, título idêntico à tela de login e carrinho.
+ * @param props Propriedades para controle da sidebar e nome de exibição
+ */
 export default function Header({
   sidebarAberta,
   setSidebarAberta,
   nomeUsuario,
-  fichas,
 }: HeaderProps) {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+
+  const nomeExibicao = nomeUsuario || user?.nome;
 
   // Escuta o array do carrinho direto da store global
   const carrinho = useCartStore((state) => state.carrinho);
@@ -46,17 +50,23 @@ export default function Header({
   });
 
   return (
-    <View
-      style={[
-        styles.header,
-        { paddingTop: Math.max(insets.top, 16) + 8 },
-      ]}
-    >
-      {/* Botão Perfil / Menu Lateral */}
+    <View style={styles.header}>
+      {/* Título Centralizado no mesmo estilo e proporção da tela de Login */}
+      <View style={styles.tituloContainer} pointerEvents="none">
+        <Text
+          style={[styles.titulo, fontsLoaded && styles.tituloComFonte]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+        >
+          Sabor Universitário
+        </Text>
+      </View>
+
+      {/* Botão Perfil / Menu Lateral à Esquerda */}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={
-          nomeUsuario ? `Abrir menu de ${nomeUsuario}` : "Abrir menu lateral"
+          nomeExibicao ? `Abrir menu de ${nomeExibicao}` : "Abrir menu lateral"
         }
         style={({ pressed }) => [
           styles.perfilBtn,
@@ -65,23 +75,14 @@ export default function Header({
         onPress={() => setSidebarAberta((prev) => !prev)}
         hitSlop={10}
       >
-        <View style={styles.foto} />
+        {user?.perfil?.foto_url ? (
+          <Image source={{ uri: user.perfil.foto_url }} style={styles.foto} />
+        ) : (
+          <View style={styles.fotoPlaceholder} />
+        )}
       </Pressable>
 
-      {/* Título Centralizado */}
-      <View style={styles.tituloContainer}>
-        <Text
-          style={[styles.titulo, fontsLoaded && styles.tituloComFonte]}
-          numberOfLines={1}
-        >
-          Sabor Universitário
-        </Text>
-        {fichas !== undefined && (
-          <Text style={styles.subtitulo}>{fichas} fichas</Text>
-        )}
-      </View>
-
-      {/* Botão Carrinho */}
+      {/* Botão Carrinho à Direita */}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Carrinho de compras, ${totalItens} itens`}
@@ -101,55 +102,62 @@ export default function Header({
 const styles = StyleSheet.create({
   header: {
     backgroundColor: "#FF7124",
+    width: "100%",
+    paddingTop: 40,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    elevation: 4,
+    position: "relative",
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
-  },
-  perfilBtn: {
-    padding: 2,
-    zIndex: 2,
-  },
-  foto: {
-    width: 38,
-    height: 38,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 19,
+    elevation: 4,
   },
   tituloContainer: {
-    flex: 1,
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 40,
+    bottom: 24,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 8,
+    paddingHorizontal: 60,
   },
   titulo: {
-    color: "#FFFFFF",
-    fontSize: 20,
-    fontWeight: "600",
+    color: "#ffffff",
+    fontSize: 32,
     textAlign: "center",
     includeFontPadding: false,
   },
   tituloComFonte: {
     fontFamily: "BerkshireSwash",
-    fontWeight: "normal",
   },
-  subtitulo: {
-    color: "#FFE8D6",
-    fontSize: 12,
-    marginTop: 2,
+  perfilBtn: {
+    padding: 2,
+    zIndex: 10,
+  },
+  foto: {
+    width: 36,
+    height: 36,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+  },
+  fotoPlaceholder: {
+    width: 36,
+    height: 36,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    opacity: 0.9,
   },
   carrinhoBtn: {
     backgroundColor: "#FFFFFF",
     borderRadius: 18,
     paddingVertical: 6,
     paddingHorizontal: 12,
-    zIndex: 2,
+    zIndex: 10,
     flexDirection: "row",
     alignItems: "center",
   },
