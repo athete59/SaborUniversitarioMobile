@@ -143,7 +143,7 @@ export default function Cardapio() {
     return { uri: IMAGEM_PADRAO };
   }
 
-  function alterarQuantidade(chaveProduto: string, delta: number) {
+  function alterarQuantidadeLocal(chaveProduto: string, delta: number) {
     setQuantidades((prev) => {
       const atual = prev[chaveProduto] || 1;
       const novaQtd = atual + delta;
@@ -151,7 +151,7 @@ export default function Cardapio() {
     });
   }
 
-  // Despacha diretamente para o Zustand (refletindo no Header na hora)
+  // MODIFICADO: Passa a quantidade selecionada diretamente de uma vez só
   function handleAdicionarCarrinho(produto: Produto) {
     const chaveProduto = String(produto.id_produto || produto.id || produto.nome);
     const qtd = quantidades[chaveProduto] || 1;
@@ -167,16 +167,14 @@ export default function Cardapio() {
       precoNumerico = isNaN(parsed) ? 0 : parsed;
     }
 
-    // Adiciona a quantidade selecionada na store
-    for (let i = 0; i < qtd; i++) {
-      adicionarItem({
-        id: produto.id_produto || produto.id || chaveProduto,
-        nome: produto.nome,
-        preco: precoNumerico,
-        quantidade: 1,
-        imagem: obterFonteImagem(produto.imagem).uri,
-      });
-    }
+    // Adiciona o item com a quantidade exata escolhida no seletor
+    adicionarItem({
+      id: produto.id_produto || produto.id || chaveProduto,
+      nome: produto.nome,
+      preco: precoNumerico,
+      quantidade: qtd,
+      imagem: obterFonteImagem(produto.imagem).uri,
+    });
 
     // Reseta o contador local do card para 1
     setQuantidades((prev) => ({ ...prev, [chaveProduto]: 1 }));
@@ -203,7 +201,6 @@ export default function Cardapio() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header agora lê o total de itens reativamente direto da Store */}
       <Header
         sidebarAberta={sidebarAberta}
         setSidebarAberta={setSidebarAberta}
@@ -240,30 +237,31 @@ export default function Cardapio() {
                   const qtdAtual = quantidades[chave] || 1;
 
                   return (
-                    <TouchableOpacity
-                      key={chave}
-                      style={styles.cardProdutoWeb}
-                      activeOpacity={0.9}
-                      onPress={() => irParaDetalhe(item)}
-                    >
-                      <View style={styles.imgProdutoWeb}>
-                        <Image
-                          source={obterFonteImagem(item.imagem)}
-                          style={styles.imgInside}
-                          resizeMode="cover"
-                        />
-                      </View>
-                      <Text style={styles.cardNomeWeb} numberOfLines={1}>
-                        {item.nome}
-                      </Text>
-                      <Text style={styles.cardPrecoWeb}>
-                        {formatarPreco(item.preco)}
-                      </Text>
+                    <View key={chave} style={styles.cardProdutoWeb}>
+                      <TouchableOpacity
+                        style={styles.cardConteudoToque}
+                        activeOpacity={0.9}
+                        onPress={() => irParaDetalhe(item)}
+                      >
+                        <View style={styles.imgProdutoWeb}>
+                          <Image
+                            source={obterFonteImagem(item.imagem)}
+                            style={styles.imgInside}
+                            resizeMode="cover"
+                          />
+                        </View>
+                        <Text style={styles.cardNomeWeb} numberOfLines={1}>
+                          {item.nome}
+                        </Text>
+                        <Text style={styles.cardPrecoWeb}>
+                          {formatarPreco(item.preco)}
+                        </Text>
+                      </TouchableOpacity>
 
                       <View style={styles.controleWeb}>
                         <TouchableOpacity
                           style={styles.btnControle}
-                          onPress={() => alterarQuantidade(chave, -1)}
+                          onPress={() => alterarQuantidadeLocal(chave, -1)}
                           activeOpacity={0.8}
                         >
                           <Text style={styles.btnControleTexto}>-</Text>
@@ -271,7 +269,7 @@ export default function Cardapio() {
                         <Text style={styles.qtdTexto}>{qtdAtual}</Text>
                         <TouchableOpacity
                           style={styles.btnControle}
-                          onPress={() => alterarQuantidade(chave, 1)}
+                          onPress={() => alterarQuantidadeLocal(chave, 1)}
                           activeOpacity={0.8}
                         >
                           <Text style={styles.btnControleTexto}>+</Text>
@@ -285,7 +283,7 @@ export default function Cardapio() {
                       >
                         <Text style={styles.btnCardTextoWeb}>Adicionar</Text>
                       </TouchableOpacity>
-                    </TouchableOpacity>
+                    </View>
                   );
                 })
               ) : (
@@ -309,30 +307,31 @@ export default function Cardapio() {
                   const qtdAtual = quantidades[chave] || 1;
 
                   return (
-                    <TouchableOpacity
-                      key={chave}
-                      style={styles.cardProdutoWeb}
-                      activeOpacity={0.9}
-                      onPress={() => irParaDetalhe(item)}
-                    >
-                      <View style={styles.imgProdutoWeb}>
-                        <Image
-                          source={obterFonteImagem(item.imagem)}
-                          style={styles.imgInside}
-                          resizeMode="cover"
-                        />
-                      </View>
-                      <Text style={styles.cardNomeWeb} numberOfLines={1}>
-                        {item.nome}
-                      </Text>
-                      <Text style={styles.cardPrecoWeb}>
-                        {formatarPreco(item.preco)}
-                      </Text>
+                    <View key={chave} style={styles.cardProdutoWeb}>
+                      <TouchableOpacity
+                        style={styles.cardConteudoToque}
+                        activeOpacity={0.9}
+                        onPress={() => irParaDetalhe(item)}
+                      >
+                        <View style={styles.imgProdutoWeb}>
+                          <Image
+                            source={obterFonteImagem(item.imagem)}
+                            style={styles.imgInside}
+                            resizeMode="cover"
+                          />
+                        </View>
+                        <Text style={styles.cardNomeWeb} numberOfLines={1}>
+                          {item.nome}
+                        </Text>
+                        <Text style={styles.cardPrecoWeb}>
+                          {formatarPreco(item.preco)}
+                        </Text>
+                      </TouchableOpacity>
 
                       <View style={styles.controleWeb}>
                         <TouchableOpacity
                           style={styles.btnControle}
-                          onPress={() => alterarQuantidade(chave, -1)}
+                          onPress={() => alterarQuantidadeLocal(chave, -1)}
                           activeOpacity={0.8}
                         >
                           <Text style={styles.btnControleTexto}>-</Text>
@@ -340,7 +339,7 @@ export default function Cardapio() {
                         <Text style={styles.qtdTexto}>{qtdAtual}</Text>
                         <TouchableOpacity
                           style={styles.btnControle}
-                          onPress={() => alterarQuantidade(chave, 1)}
+                          onPress={() => alterarQuantidadeLocal(chave, 1)}
                           activeOpacity={0.8}
                         >
                           <Text style={styles.btnControleTexto}>+</Text>
@@ -354,7 +353,7 @@ export default function Cardapio() {
                       >
                         <Text style={styles.btnCardTextoWeb}>Adicionar</Text>
                       </TouchableOpacity>
-                    </TouchableOpacity>
+                    </View>
                   );
                 })
               ) : (
@@ -412,6 +411,10 @@ const styles = StyleSheet.create({
     padding: 12,
     alignItems: "center",
     justifyContent: "space-between",
+  },
+  cardConteudoToque: {
+    width: "100%",
+    alignItems: "center",
   },
   imgProdutoWeb: {
     width: "100%",

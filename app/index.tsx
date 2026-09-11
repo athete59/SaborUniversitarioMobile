@@ -7,7 +7,7 @@ import {
 } from "@expo-google-fonts/inter";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -75,7 +75,7 @@ export default function Login() {
 
       const usuarioLogado = usuarios[0];
 
-      // Salva os dados essenciais do usuário no AsyncStorage para uso no carrinho/checkout/pix
+      // Salva os dados no AsyncStorage para persistência local
       await AsyncStorage.setItem(
         "usuario_logado",
         JSON.stringify(usuarioLogado)
@@ -86,7 +86,7 @@ export default function Login() {
         await (auth as any).signInManual(usuarioLogado);
       }
 
-      // Redirecionamento de rota por e-mail (ou perfil)
+      // Redirecionamento de rota por e-mail
       if (emailLimpo.toLowerCase() === "luiza@gmail.com") {
         router.replace("/(tabs)/Empresa/CadastrarProduto" as any);
       } else {
