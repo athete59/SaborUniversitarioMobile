@@ -53,7 +53,7 @@ export default function ResumoPedido() {
 
   const [sidebarAberta, setSidebarAberta] = useState<boolean>(false);
   const [enviandoPedido, setEnviandoPedido] = useState<boolean>(false);
-  const [formaPagamento, setFormaPagamento] = useState<string>("Dinheiro");
+  const [formaPagamento, setFormaPagamento] = useState<string>("Cartão");
   const [modalPagamentoVisivel, setModalPagamentoVisivel] =
     useState<boolean>(false);
 
@@ -366,6 +366,21 @@ export default function ResumoPedido() {
               )}
             </TouchableOpacity>
           </View>
+
+          {/* Botão de Adicionar Cartão exibido quando "Cartão" estiver selecionado */}
+          {formaPagamento === "Cartão" && (
+            <TouchableOpacity
+              style={styles.btnAdicionarCartao}
+              onPress={() =>
+                router.push("/(tabs)/Cliente/AdicionarCartao" as any)
+              }
+              activeOpacity={0.8}
+            >
+              <Text style={styles.btnAdicionarCartaoTexto}>
+                + Adicionar cartão
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
 
@@ -593,6 +608,21 @@ const styles = StyleSheet.create({
     fontFamily: "ArbutusSlab_400Regular",
     color: "#FFFFFF",
     fontSize: 16,
+  },
+  btnAdicionarCartao: {
+    marginTop: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: "#FFE7D2",
+    borderWidth: 1,
+    borderColor: "#F5670E",
+    alignSelf: "flex-start",
+  },
+  btnAdicionarCartaoTexto: {
+    fontFamily: "Belanosima_600SemiBold",
+    color: "#F5670E",
+    fontSize: 14,
   },
   semPedidosTexto: {
     fontFamily: "Belanosima_600SemiBold",
