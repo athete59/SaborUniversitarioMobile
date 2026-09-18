@@ -9,7 +9,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "test": "vitest"
+    "test": "vitest",
+    "test:integration": "vitest run"
   },
   "dependencies": {
     "@expo-google-fonts/arbutus-slab": "^0.4.1",
@@ -54,11 +55,14 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@faker-js/faker": "^10.6.0",
     "@types/react": "~19.2.4",
+    "@types/supertest": "^7.2.1",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~57.0.2",
+    "supertest": "^7.2.2",
     "typescript": "~6.0.3",
-    "vitest": "^5.0.0"
+    "vitest": "^5.0.1"
   },
   "private": true
 }
