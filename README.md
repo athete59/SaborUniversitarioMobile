@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-
-# 🍽️ Sabor Universitário - Versão Mobile
-
-O **Sabor Universitário** é um sistema de gestão e benefícios alimentares projetado para integrar instituições de ensino, empresas parceiras, funcionários e clientes (estudantes/professores) em uma única plataforma prática e eficiente.
-=======
 # 🍽️ Sabor Universitário - Mobile
 
 O **Sabor Universitário Mobile** é o aplicativo para gestão de refeições universitárias e estabelecimentos parceiros, desenvolvido em **React Native** com **Expo SDK 57**, **Expo Router**, **Zustand** e **Supabase**.
@@ -82,33 +76,23 @@ O sistema detecta automaticamente o perfil do usuário durante o login e o redir
    - Pressione `i` para abrir no simulador iOS
    - Pressione `w` para abrir a versão Web no navegador
    - Ou escaneie o QR Code no terminal usando o aplicativo **Expo Go** no celular.
->>>>>>> 56ac468071bde1eefe789da40ff06d02f375a91e
 
 ---
 
-## 🧪 Scripts Disponíveis
+## 🧪 Testes Automatizados
 
-<<<<<<< HEAD
-Na versão mobile, o sistema é dividido em 2 níveis de acesso independentes, cada um com suas respectivas funcionalidades:
+O projeto possui uma arquitetura completa de testes automatizados com o **Vitest**, cobrindo desde regras de negócio isoladas até fluxos complexos de ponta a ponta:
 
-### 💼 1. Empresa (Restaurantes/Parceiros)
-*   **Função:** Responsável por controla as vendas e fluxo de caixa .
-
-### 🎓 2. Cliente (Alunos/Professores/Comunidade)
-*   **Função:** O usuário final da aplicação. Pode visualizar cardápios, comprar refeições, gerenciar seus saldos de benefícios e gerar cupons/QR Codes para retirada de alimentos.
+| Comando | Descrição | Escopo |
+| :--- | :--- | :--- |
+| `npm test` | **Testes Unitários** | Regras de negócio, cálculos monetários do carrinho e autenticação (`__tests__/`) |
+| `npm run test:integration` | **Testes de Integração** | Validação de schemas Zod e factories com Faker (`tests/integration/`, `tests/factories/`) |
+| `npm run test:e2e` | **Testes Ponta a Ponta (E2E)** | Jornadas completas do Cliente, Funcionário, Empresa e Resiliência (`tests/e2e/`) |
+| `npm run test:all` | **Bateria Completa** | Executa todos os testes da aplicação simultaneamente |
 
 ---
 
-## 🛠️ Tecnologias Utilizadas
+## 🛠️ Outros Scripts
 
-*   **Frontend:** Reactive Native + Expo
-*   **Banco de Dados & Autenticação:** [Supabase](https://supabase.com/) (PostgreSQL + Auth nativo)
-*   **Controle de Versão:** Git & GitHub
-
-
-
-=======
 - `npm start`: Inicia o servidor Metro do Expo.
-- `npm run lint`: Executa a verificação estática de código com o ESLint.
-- `npm test`: Executa a suite de testes unitários com Jest.
->>>>>>> 56ac468071bde1eefe789da40ff06d02f375a91e
+- `npm run lint`: Executa a verificação estática de código com o ESLint (`expo lint`).

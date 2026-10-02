@@ -107,7 +107,7 @@ export default function PagamentoPix() {
             setTimeout(() => {
                 router.replace("/pedidofeito" as any);
             }, 1200);
-        } catch (err: any) {
+        } catch {
             Alert.alert("Erro", "Não foi possível atualizar o pedido.");
         }
     }
@@ -152,7 +152,9 @@ export default function PagamentoPix() {
                     </TouchableOpacity>
 
                     {/* Título PIX */}
-                    <Text style={styles.tituloPix}>PIX</Text>
+                    <Text style={styles.tituloPix}>
+                        PIX {valorTotal !== "0.00" ? `- R$ ${Number(valorTotal).toFixed(2).replace(".", ",")}` : ""}
+                    </Text>
 
                     {/* Linha Central: QR Code + Texto Instrução */}
                     <View style={styles.conteudoCentral}>
