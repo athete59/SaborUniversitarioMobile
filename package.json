@@ -12,7 +12,12 @@
     "test": "vitest run __tests__",
     "test:integration": "vitest run tests/integration tests/factories",
     "test:e2e": "vitest run tests/e2e",
-    "test:all": "vitest run"
+    "test:all": "vitest run",
+    "test:maestro": "maestro test .maestro/suite_completa.yaml",
+    "test:maestro:login": "maestro test .maestro/01_login_validacoes.yaml",
+    "test:maestro:cliente": "maestro test .maestro/02_jornada_cliente.yaml",
+    "test:maestro:funcionario": "maestro test .maestro/03_jornada_funcionario.yaml",
+    "test:maestro:empresa": "maestro test .maestro/04_jornada_empresa.yaml"
   },
   "dependencies": {
     "@expo-google-fonts/arbutus-slab": "^0.4.1",
@@ -59,6 +64,7 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^10.6.0",
+    "@playwright/test": "^1.64.1",
     "@types/react": "~19.2.4",
     "@types/supertest": "^7.2.1",
     "eslint": "^9.25.0",

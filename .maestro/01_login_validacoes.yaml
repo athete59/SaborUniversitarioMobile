@@ -1,0 +1,46 @@
+appId: ${APP_ID:-com.saboruniversitario.mobile}
+---
+# ==============================================================================
+# FLUXO 1: Validação de Login e Casos de Borda (Mobile E2E com Maestro)
+# ==============================================================================
+
+- launchApp:
+    clearState: true
+
+# 1. Valida que a tela inicial carregou com os elementos principais
+- assertVisible: "Sabor Universitário"
+- assertVisible: "Acesse a sua conta"
+- assertVisible: "Entre com o seu email e a sua senha"
+- assertVisible:
+    id: "input-email"
+- assertVisible:
+    id: "input-senha"
+- assertVisible:
+    id: "btn-entrar"
+
+# 2. Testa submissão com campos vazios (Validação de Formulário)
+- tapOn:
+    id: "btn-entrar"
+- assertVisible: ".*Preencha todos os campos.*"
+
+# 3. Testa submissão com credenciais inválidas / inexistentes
+- tapOn:
+    id: "input-email"
+- inputText: "usuario_inexistente@unifei.edu.br"
+
+- tapOn:
+    id: "input-senha"
+- inputText: "senhaIncorreta123"
+
+- tapOn:
+    id: "btn-entrar"
+- assertVisible: ".*Email ou senha incorretos.*"
+
+# 4. Testa navegação para recuperação de senha
+- tapOn:
+    id: "link-esqueci-senha"
+- assertVisible: "Recuperar Senha"
+
+# 5. Retorna para a tela de login
+- back
+- assertVisible: "Acesse a sua conta"

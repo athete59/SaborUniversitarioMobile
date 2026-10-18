@@ -252,6 +252,7 @@ export default function DashboardEmpresa() {
             <Text style={styles.secaoTitulo}>Ações Rápidas</Text>
             <View style={styles.containerAcoes}>
               <TouchableOpacity
+                testID="btn-cadastrar-novo-produto"
                 style={styles.botaoAcao}
                 activeOpacity={0.7}
                 onPress={() =>
@@ -271,6 +272,7 @@ export default function DashboardEmpresa() {
               </TouchableOpacity>
 
               <TouchableOpacity
+                testID="btn-formas-pagamento"
                 style={styles.botaoAcao}
                 activeOpacity={0.7}
                 onPress={() =>

@@ -1,0 +1,18 @@
+appId: ${APP_ID:-com.saboruniversitario.mobile}
+---
+# ==============================================================================
+# SUÍTE COMPLETA DE TESTES MOBILE E2E COM MAESTRO
+# Executa todos os fluxos críticos de ponta a ponta
+# ==============================================================================
+
+# 1. Validações de Login e Casos de Borda
+- runFlow: 01_login_validacoes.yaml
+
+# 2. Jornada do Cliente (Navegação, Meus Pedidos e Minha Conta)
+- runFlow: 02_jornada_cliente.yaml
+
+# 3. Jornada do Funcionário (Scanner, Busca Manual e Baixa de Pedido)
+- runFlow: 03_jornada_funcionario.yaml
+
+# 4. Jornada da Empresa (Dashboard, Métricas e Menu Corporativo)
+- runFlow: 04_jornada_empresa.yaml

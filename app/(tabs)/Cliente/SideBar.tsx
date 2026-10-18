@@ -120,6 +120,7 @@ export default function SideBar({
           {/* Lista de Navegação (.sidebar ul li) */}
           <View style={styles.listaMenu}>
             <TouchableOpacity
+              testID="menu-inicio"
               style={styles.itemMenu}
               activeOpacity={0.7}
               onPress={() => navegarPara("/(tabs)/Cliente/PaginaInicial")}
@@ -135,6 +136,7 @@ export default function SideBar({
             </TouchableOpacity>
 
             <TouchableOpacity
+              testID="menu-minha-conta"
               style={styles.itemMenu}
               activeOpacity={0.7}
               onPress={() => navegarPara("/(tabs)/Cliente/MeuPerfil")}
@@ -150,6 +152,7 @@ export default function SideBar({
             </TouchableOpacity>
 
             <TouchableOpacity
+              testID="menu-meus-pedidos"
               style={styles.itemMenu}
               activeOpacity={0.7}
               onPress={() => navegarPara("/(tabs)/Cliente/MeusPedidos")}
@@ -166,6 +169,7 @@ export default function SideBar({
 
             {/* Opção para deslogar */}
             <TouchableOpacity
+              testID="menu-sair-conta"
               style={[styles.itemMenu, styles.itemSair]}
               activeOpacity={0.7}
               onPress={handleSair}

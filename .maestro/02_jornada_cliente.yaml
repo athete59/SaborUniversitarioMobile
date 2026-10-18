@@ -1,0 +1,61 @@
+appId: ${APP_ID:-com.saboruniversitario.mobile}
+---
+# ==============================================================================
+# FLUXO 2: Jornada Completa do Cliente (Mobile E2E com Maestro)
+# ==============================================================================
+
+- launchApp:
+    clearState: true
+
+# 1. Login do Cliente
+- assertVisible: "Acesse a sua conta"
+- tapOn:
+    id: "input-email"
+- inputText: "estudante@unifei.edu.br"
+
+- tapOn:
+    id: "input-senha"
+- inputText: "senhaSegura123"
+
+- tapOn:
+    id: "btn-entrar"
+
+# 2. Tela Principal do Cliente (Estabelecimentos Conveniados)
+- assertVisible: "Sabor Universitário"
+- assertVisible:
+    id: "btn-menu-lateral"
+- assertVisible:
+    id: "btn-carrinho-header"
+
+# 3. Navegação via Menu Lateral
+- tapOn:
+    id: "btn-menu-lateral"
+- assertVisible:
+    id: "menu-inicio"
+- assertVisible:
+    id: "menu-minha-conta"
+- assertVisible:
+    id: "menu-meus-pedidos"
+- assertVisible:
+    id: "menu-sair-conta"
+
+# 4. Acesso a Meus Pedidos
+- tapOn:
+    id: "menu-meus-pedidos"
+- assertVisible: "Meus Pedidos"
+
+# 5. Acesso a Minha Conta / Perfil
+- tapOn:
+    id: "btn-menu-lateral"
+- tapOn:
+    id: "menu-minha-conta"
+- assertVisible: "Minha Conta"
+
+# 6. Logout do Cliente
+- tapOn:
+    id: "btn-menu-lateral"
+- tapOn:
+    id: "menu-sair-conta"
+
+# 7. Confirma retorno à tela de Login
+- assertVisible: "Acesse a sua conta"

@@ -64,6 +64,7 @@ export default function Header({
 
       {/* Botão Perfil / Menu Lateral à Esquerda */}
       <Pressable
+        testID="btn-menu-lateral"
         accessibilityRole="button"
         accessibilityLabel={
           nomeExibicao ? `Abrir menu de ${nomeExibicao}` : "Abrir menu lateral"
@@ -84,6 +85,7 @@ export default function Header({
 
       {/* Botão Carrinho à Direita */}
       <Pressable
+        testID="btn-carrinho-header"
         accessibilityRole="button"
         accessibilityLabel={`Carrinho de compras, ${totalItens} itens`}
         style={({ pressed }) => [

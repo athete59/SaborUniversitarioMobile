@@ -1,0 +1,55 @@
+appId: ${APP_ID:-com.saboruniversitario.mobile}
+---
+# ==============================================================================
+# FLUXO 3: Jornada Completa do Funcionário / Atendimento (Mobile E2E com Maestro)
+# ==============================================================================
+
+- launchApp:
+    clearState: true
+
+# 1. Login do Funcionário
+- assertVisible: "Acesse a sua conta"
+- tapOn:
+    id: "input-email"
+- inputText: "atendente@cantina.com"
+
+- tapOn:
+    id: "input-senha"
+- inputText: "funcPassword123"
+
+- tapOn:
+    id: "btn-entrar"
+
+# 2. Tela Principal do Funcionário (Scanner e Validação)
+- assertVisible: "Painel do Atendimento"
+- assertVisible:
+    id: "tab-escanear-qrcode"
+- assertVisible:
+    id: "tab-digitar-codigo"
+- assertVisible:
+    id: "btn-sair-funcionario"
+
+# 3. Alternância para modo manual de digitação de pedido
+- tapOn:
+    id: "tab-digitar-codigo"
+- assertVisible: "Buscar por Código"
+- assertVisible:
+    id: "input-codigo-manual"
+- assertVisible:
+    id: "btn-localizar-pedido"
+
+# 4. Digitação manual do identificador do pedido
+- tapOn:
+    id: "input-codigo-manual"
+- inputText: "42"
+
+- tapOn:
+    id: "btn-localizar-pedido"
+
+# 5. Encerramento de sessão do funcionário
+- tapOn:
+    id: "btn-sair-funcionario"
+- tapOn: "Sair"
+
+# 6. Confirma retorno à tela de Login
+- assertVisible: "Acesse a sua conta"

@@ -278,7 +278,7 @@ export default function ScannerPedido() {
           </Text>
         </View>
 
-        <TouchableOpacity style={styles.btnSairHeader} onPress={handleSair}>
+        <TouchableOpacity testID="btn-sair-funcionario" style={styles.btnSairHeader} onPress={handleSair}>
           <Feather name="log-out" size={20} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
@@ -298,6 +298,7 @@ export default function ScannerPedido() {
               {/* Abas Alternadoras: Câmera x Manual */}
               <View style={styles.tabContainer}>
                 <TouchableOpacity
+                  testID="tab-escanear-qrcode"
                   style={[
                     styles.tabBotao,
                     modoEntrada === "camera" && styles.tabBotaoAtivo,
@@ -323,6 +324,7 @@ export default function ScannerPedido() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
+                  testID="tab-digitar-codigo"
                   style={[
                     styles.tabBotao,
                     modoEntrada === "manual" && styles.tabBotaoAtivo,
@@ -401,6 +403,7 @@ export default function ScannerPedido() {
                   </Text>
 
                   <TextInput
+                    testID="input-codigo-manual"
                     style={styles.inputManual}
                     placeholder="Ex: 42 ou PEDIDO_42"
                     placeholderTextColor="#999"
@@ -411,6 +414,7 @@ export default function ScannerPedido() {
                   />
 
                   <TouchableOpacity
+                    testID="btn-localizar-pedido"
                     style={styles.btnBuscarManual}
                     onPress={handleBuscarManual}
                     disabled={processando}

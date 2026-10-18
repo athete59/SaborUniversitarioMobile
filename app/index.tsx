@@ -104,9 +104,10 @@ export default function Login() {
               Entre com o seu email e a sua senha
             </Text>
 
-            {erro && <Text style={styles.alerta}>{erro}</Text>}
+            {erro && <Text testID="msg-erro-login" style={styles.alerta}>{erro}</Text>}
 
             <TextInput
+              testID="input-email"
               style={styles.input}
               placeholder="Email"
               placeholderTextColor="#777777"
@@ -117,6 +118,7 @@ export default function Login() {
             />
 
             <TextInput
+              testID="input-senha"
               style={styles.input}
               placeholder="Senha"
               placeholderTextColor="#777777"
@@ -126,6 +128,7 @@ export default function Login() {
             />
 
             <TouchableOpacity
+              testID="btn-entrar"
               style={styles.entrarButton}
               onPress={fazendoLogin}
               disabled={carregando}
@@ -140,6 +143,7 @@ export default function Login() {
           </View>
 
           <TouchableOpacity
+            testID="link-esqueci-senha"
             onPress={() => router.push("/esqueci-senha" as any)}
             activeOpacity={0.7}
           >
