@@ -89,8 +89,7 @@ O projeto possui uma arquitetura completa de testes automatizados, combinando te
 | :--- | :--- | :--- |
 | `npm test` | **Testes Unitários** | Regras de negócio, cálculos monetários do carrinho e autenticação (`__tests__/`) |
 | `npm run test:integration` | **Testes de Integração** | Validação de schemas Zod e factories com Faker (`tests/integration/`, `tests/factories/`) |
-| `npm run test:e2e` | **Testes de Fluxo Lógico** | Jornadas completas do Cliente, Funcionário, Empresa e Resiliência (`tests/e2e/`) |
-| `npm run test:all` | **Bateria Completa Vitest** | Executa todos os testes da aplicação simultaneamente |
+| `npm run test:all` | **Bateria Completa Vitest** | Executa todos os testes unitários e de integração da aplicação |
 
 ### 2. Testes de Interface Real Mobile (Maestro)
 Automação E2E que entra no aplicativo e interage com toques e inputs reais no emulador/celular:

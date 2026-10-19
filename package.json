@@ -11,7 +11,6 @@
     "lint": "expo lint",
     "test": "vitest run __tests__",
     "test:integration": "vitest run tests/integration tests/factories",
-    "test:e2e": "vitest run tests/e2e",
     "test:all": "vitest run",
     "test:maestro": "maestro test .maestro/suite_completa.yaml",
     "test:maestro:login": "maestro test .maestro/01_login_validacoes.yaml",
