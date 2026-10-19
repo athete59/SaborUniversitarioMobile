@@ -7,8 +7,8 @@ on:
     branches: [ main ]
 
 jobs:
-  testes-unitarios-integracao:
-    name: 🧪 Testes Unitários e Integração (Vitest)
+  testes-e-validacao:
+    name: 🧪 Testes Automatizados e Maestro
     runs-on: ubuntu-latest
 
     steps:
@@ -22,26 +22,18 @@ jobs:
           cache: 'npm'
 
       - name: Instalar dependências
-        run: npm ci
+        run: npm install
 
-      - name: Executar testes automatizados
+      - name: Executar testes automatizados (Vitest)
         run: npm run test:all
-
-  validacao-maestro:
-    name: 📱 Validação de Sintaxe dos Fluxos Maestro
-    runs-on: ubuntu-latest
-    needs: testes-unitarios-integracao
-
-    steps:
-      - name: Checkout do código
-        uses: actions/checkout@v4
 
       - name: Instalar CLI do Maestro
         run: |
           curl -FsSL "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> $GITHUB_PATH
 
-      - name: Validar integridade dos arquivos YAML da suíte
+      - name: Validar integridade dos arquivos YAML da suíte Maestro
         run: |
+          export PATH="$HOME/.maestro/bin:$PATH"
           maestro --version
           ls -la .maestro/
