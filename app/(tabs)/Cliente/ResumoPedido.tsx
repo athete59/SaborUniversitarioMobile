@@ -38,6 +38,22 @@ import { useCartStore } from "../../stores/useCartStore";
 const FORMAS_PAGAMENTO = ["Dinheiro", "Pix", "Cartão"];
 
 /**
+ * Função utilitária com os IDs reais do seu banco de dados
+ */
+const obterIdFormaPagamento = (forma: string): number => {
+    switch (forma) {
+        case "Pix":
+            return 1;
+        case "Cartão":
+            return 2;
+        case "Dinheiro":
+            return 3;
+        default:
+            return 1; // Padrão de segurança
+    }
+};
+
+/**
  * Tela de revisão do pedido com seleção de forma de pagamento e finalização da compra.
  */
 export default function ResumoPedido() {
@@ -80,13 +96,15 @@ export default function ResumoPedido() {
     }, [itens]);
 
     /**
-     * Envia o pedido e seus itens para o banco de dados Supabase e limpa o carrinho.
+     * Envia o pedido e seus itens para o banco de dados Supabase e processa o pagamento.
      */
     async function confirmarPedido() {
         if (itens.length === 0) {
             Alert.alert("Aviso", "Seu carrinho está vazio.");
             return;
         }
+
+        let pedidoIdCriado: string | number | null = null;
 
         try {
             setEnviandoPedido(true);
@@ -100,24 +118,42 @@ export default function ResumoPedido() {
                 return;
             }
 
-            // 1. Grava o pedido com status "Pendente" se for Pix, senão "Em preparo"
+            // Busca na tabela 'clientes' qual é o ID do cliente associado ao 'idusuario'
+            const { data: clienteData, error: erroCliente } = await supabase
+                .from("clientes")
+                .select("id")
+                .eq("idusuario", Number(usuarioLogado.id))
+                .single();
+
+            if (erroCliente || !clienteData) {
+                throw new Error("Perfil de cliente não encontrado para este usuário.");
+            }
+
+            const idClienteReal = clienteData.id;
+
+            // 1. Grava o pedido: "Pendente" se for Pix, senão "Em preparo"
             const statusInicial = formaPagamento === "Pix" ? "Pendente" : "Em preparo";
+            const idFormaNum = obterIdFormaPagamento(formaPagamento); // Converte para o ID correto (1, 2 ou 3)
 
             const { data: pedidoCriado, error: erroPedido } = await supabase
                 .from("pedidos")
                 .insert([
                     {
-                        idcliente: Number(usuarioLogado.id),
+                        idcliente: idClienteReal,
                         valortotal: total,
                         status: statusInicial,
                         forma_pagamento: formaPagamento,
+                        idforma_pagamento: idFormaNum, // Enviando o ID numérico correto!
                         data_pedido: new Date().toISOString(),
+                        data_hora: new Date().toISOString()
                     },
                 ])
                 .select()
                 .single();
 
             if (erroPedido) throw erroPedido;
+
+            pedidoIdCriado = pedidoCriado.id;
 
             // 2. Grava os itens vinculados ao pedido
             if (pedidoCriado?.id) {
@@ -142,53 +178,69 @@ export default function ResumoPedido() {
                 }
             }
 
-            // Limpa o carrinho global do Zustand
-            limparCarrinho();
-
-<<<<<<< HEAD
-            // 3. Se for Pix, chama a Edge Function segura para obter o Copia e Cola do Mercado Pago
+            // 3. Pix: gera a cobrança via Edge Function do AbacatePay e abre a tela
             if (formaPagamento === "Pix") {
-                const { data: pixData, error: erroPix } = await supabase.functions.invoke(
-                    "criar-pagamento-pix",
-                    {
-                        body: {
-                            pedidoId: pedidoCriado.id,
-                            valorTotal: total.toFixed(2),
-                            emailCliente: usuarioLogado.email,
-                            nomeCliente: usuarioLogado.nome,
-                        },
-                    }
-                );
+                const { data: dadosPix, error: erroPix } = await supabase.functions.invoke("criar-pix", {
+                    body: { pedidoId: pedidoCriado.id },
+                });
 
-                if (erroPix || !pixData?.copiaECola) {
-                    throw new Error(erroPix?.message || "Não foi possível gerar a chave Pix com o servidor.");
+                // Lê a resposta da função criar-pix e calcula quando o Pix expira
+                const brCodeRecebido = typeof dadosPix?.brCode === "string" ? dadosPix.brCode.trim() : "";
+                const segundosPix = Number(dadosPix?.expiraEmSegundos);
+                const duracaoPix = Number.isFinite(segundosPix) && segundosPix > 0 ? Math.min(segundosPix, 3600) : 900;
+                const respostaPix = brCodeRecebido !== ""
+                    ? { ok: true as const, brCode: brCodeRecebido, expiraEm: Date.now() + duracaoPix * 1000 }
+                    : {
+                        ok: false as const,
+                        motivo: typeof dadosPix?.error === "string" ? dadosPix.error : "O servidor não devolveu o código Pix.",
+                    };
+
+                if (erroPix || !respostaPix.ok) {
+                    // Mostra o motivo real que a função devolveu (antes ele ficava escondido)
+                    let detalhe = erroPix?.message ?? "";
+                    try {
+                        detalhe = JSON.stringify(await (erroPix as any).context.json());
+                    } catch { }
+                    console.error("criar-pix falhou:", detalhe || (respostaPix.ok ? "" : respostaPix.motivo));
+                    throw new Error("Não foi possível gerar a cobrança Pix.");
                 }
 
-                // Direciona para a tela do Pix passando o ID e o código copia e cola
+                // Só limpa o carrinho depois que o Pix foi gerado com sucesso
+                limparCarrinho();
+
+                // Navega para a tela de pagamento passando o código Copia e Cola
+                // e o horário em que ele expira (para o contador regressivo)
                 router.push({
-                    pathname: "/Cliente/PagamentoPix" as any,
+                    pathname: "/(tabs)/Cliente/PagamentoPix",
                     params: {
-                        idPedido: pedidoCriado.id,
-                        copiaECola: pixData.copiaECola,
+                        brCode: respostaPix.brCode,
+                        pedidoId: String(pedidoCriado.id),
+                        expiraEm: String(respostaPix.expiraEm),
                     },
-                });
+                } as any);
+
             } else {
-                router.push("/pedidofeito" as any);
+                // Dinheiro ou Cartão: finaliza e vai para Meus Pedidos
+                limparCarrinho();
+
+                Alert.alert(
+                    "Pedido Confirmado!",
+                    "Seu pedido foi registrado com sucesso. Acompanhe o status na tela de Meus Pedidos.",
+                    [
+                        {
+                            text: "Ver Meus Pedidos",
+                            onPress: () => router.push("/(tabs)/Cliente/MeusPedidos" as any),
+                        },
+                    ]
+                );
             }
-=======
-            Alert.alert(
-                "Pedido Confirmado!",
-                "Seu pedido foi registrado com sucesso. Acesse o QR Code para retirada na tela de Meus Pedidos.",
-                [
-                    {
-                        text: "Ver Meus Pedidos",
-                        onPress: () => router.push("/(tabs)/Cliente/MeusPedidos" as any),
-                    },
-                ]
-            );
-            router.push("/(tabs)/Cliente/MeusPedidos" as any);
->>>>>>> 56ac468071bde1eefe789da40ff06d02f375a91e
         } catch (error: any) {
+            console.error("ERRO COMPLETO:", JSON.stringify(error, null, 2));
+            console.error("MENSAGEM:", error.message);
+
+            if (formaPagamento === "Pix" && pedidoIdCriado) {
+                await supabase.from("pedidos").update({ status: "Cancelado" }).eq("id", pedidoIdCriado);
+            }
             Alert.alert("Erro", error.message || "Não foi possível confirmar o pedido.");
         } finally {
             setEnviandoPedido(false);
@@ -399,243 +451,42 @@ export default function ResumoPedido() {
 }
 
 const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: "#ececec",
-    },
-    centerContainer: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        padding: 24,
-        backgroundColor: "#ececec",
-    },
-    scrollContent: {
-        paddingHorizontal: 16,
-        paddingBottom: 40,
-    },
-    titulo: {
-        fontFamily: "Gabriela_400Regular",
-        fontSize: 28,
-        color: "#fa8006",
-        textAlign: "center",
-        marginVertical: 20,
-    },
-    categoriaContainer: {
-        backgroundColor: "#FFE7D2",
-        paddingVertical: 8,
-        paddingHorizontal: 16,
-        borderRadius: 8,
-        alignSelf: "center",
-        marginBottom: 16,
-    },
-    categoriaTexto: {
-        fontFamily: "ArbutusSlab_400Regular",
-        fontSize: 18,
-        color: "#F5670E",
-    },
-    cardProdutoBox: {
-        backgroundColor: "#FF9C72",
-        borderRadius: 20,
-        padding: 16,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.18,
-        shadowRadius: 8,
-        elevation: 4,
-        marginBottom: 20,
-    },
-    resumoItemLinha: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: "rgba(255, 255, 255, 0.35)",
-    },
-    resumoEsquerda: {
-        flexDirection: "row",
-        alignItems: "center",
-        flex: 1,
-        marginRight: 10,
-    },
-    imgProduto: {
-        width: 65,
-        height: 65,
-        backgroundColor: "#FFFFFF",
-        borderRadius: 12,
-        marginRight: 12,
-    },
-    imgProdutoFallback: {
-        width: 65,
-        height: 65,
-        backgroundColor: "#FFFFFF",
-        borderRadius: 12,
-        marginRight: 12,
-    },
-    infoProduto: {
-        flex: 1,
-    },
-    nomeProduto: {
-        fontFamily: "Belanosima_600SemiBold",
-        fontSize: 17,
-        color: "#FFFFFF",
-        marginBottom: 4,
-    },
-    precoItem: {
-        fontFamily: "ArbutusSlab_400Regular",
-        fontSize: 15,
-        color: "#FFFFFF",
-    },
-    controle: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 8,
-    },
-    controleBotao: {
-        width: 30,
-        height: 30,
-        borderRadius: 15,
-        backgroundColor: "#FFFFFF",
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    controleBotaoTexto: {
-        fontFamily: "ArbutusSlab_400Regular",
-        fontSize: 16,
-        color: "#111111",
-        fontWeight: "bold",
-    },
-    controleQuantidade: {
-        fontFamily: "ArbutusSlab_400Regular",
-        fontSize: 16,
-        color: "#FFFFFF",
-        minWidth: 20,
-        textAlign: "center",
-    },
-    totalContainer: {
-        marginTop: 14,
-        paddingTop: 10,
-        alignItems: "flex-end",
-    },
-    totalTexto: {
-        fontFamily: "ArbutusSlab_400Regular",
-        fontSize: 18,
-        color: "#FFFFFF",
-    },
-    resumoFooter: {
-        alignItems: "center",
-        marginTop: 4,
-    },
-    linkAdicionarMais: {
-        fontFamily: "Belanosima_600SemiBold",
-        color: "#F5670E",
-        fontSize: 15,
-        textDecorationLine: "underline",
-        marginBottom: 20,
-    },
-    pagamentoLinha: {
-        width: "100%",
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 12,
-    },
-    selectPagamento: {
-        flex: 1,
-        backgroundColor: "#FFFFFF",
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        paddingHorizontal: 14,
-        height: 52,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: "#E0E0E0",
-    },
-    selectTexto: {
-        fontFamily: "Belanosima_600SemiBold",
-        fontSize: 15,
-        color: "#333333",
-    },
-    selectSeta: {
-        fontSize: 12,
-        color: "#777777",
-    },
-    btnComprar: {
-        flex: 1,
-        backgroundColor: "#ff6b2c",
-        height: 52,
-        borderRadius: 10,
-        alignItems: "center",
-        justifyContent: "center",
-        shadowColor: "rgba(0,0,0,0.18)",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 1,
-        shadowRadius: 8,
-        elevation: 3,
-    },
-    btnComprarTexto: {
-        fontFamily: "ArbutusSlab_400Regular",
-        color: "#FFFFFF",
-        fontSize: 16,
-    },
-    semPedidosTexto: {
-        fontFamily: "Belanosima_600SemiBold",
-        fontSize: 22,
-        color: "#555555",
-        marginBottom: 20,
-    },
-    btnVoltarCardapio: {
-        path: "./Cardapio",
-        backgroundColor: "#F5670E",
-        paddingVertical: 12,
-        paddingHorizontal: 24,
-        borderRadius: 10,
-    },
-    btnVoltarCardapioTexto: {
-        fontFamily: "ArbutusSlab_400Regular",
-        color: "#FFFFFF",
-        fontSize: 16,
-    },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: "rgba(0, 0, 0, 0.5)",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: 24,
-    },
-    modalConteudo: {
-        backgroundColor: "#FFFFFF",
-        width: "100%",
-        borderRadius: 14,
-        padding: 20,
-        elevation: 6,
-    },
-    modalTitulo: {
-        fontFamily: "Gabriela_400Regular",
-        fontSize: 20,
-        color: "#222222",
-        marginBottom: 16,
-        textAlign: "center",
-    },
-    modalItem: {
-        paddingVertical: 14,
-        borderBottomWidth: 1,
-        borderBottomColor: "#F0F0F0",
-        alignItems: "center",
-    },
-    modalItemAtivo: {
-        backgroundColor: "#FFE7D2",
-        borderRadius: 8,
-    },
-    modalItemTexto: {
-        fontFamily: "Belanosima_400Regular",
-        fontSize: 16,
-        color: "#444444",
-    },
-    modalItemTextoAtivo: {
-        fontFamily: "Belanosima_700Bold",
-        color: "#F5670E",
-    },
+    safeArea: { flex: 1, backgroundColor: "#ececec" },
+    centerContainer: { flex: 1, justifyContent: "center", alignItems: "center", padding: 24, backgroundColor: "#ececec" },
+    scrollContent: { paddingHorizontal: 16, paddingBottom: 40 },
+    titulo: { fontFamily: "Gabriela_400Regular", fontSize: 28, color: "#fa8006", textAlign: "center", marginVertical: 20 },
+    categoriaContainer: { backgroundColor: "#FFE7D2", paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8, alignSelf: "center", marginBottom: 16 },
+    categoriaTexto: { fontFamily: "ArbutusSlab_400Regular", fontSize: 18, color: "#F5670E" },
+    cardProdutoBox: { backgroundColor: "#FF9C72", borderRadius: 20, padding: 16, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 8, elevation: 4, marginBottom: 20 },
+    resumoItemLinha: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "rgba(255, 255, 255, 0.35)" },
+    resumoEsquerda: { flexDirection: "row", alignItems: "center", flex: 1, marginRight: 10 },
+    imgProduto: { width: 65, height: 65, backgroundColor: "#FFFFFF", borderRadius: 12, marginRight: 12 },
+    imgProdutoFallback: { width: 65, height: 65, backgroundColor: "#FFFFFF", borderRadius: 12, marginRight: 12 },
+    infoProduto: { flex: 1 },
+    nomeProduto: { fontFamily: "Belanosima_600SemiBold", fontSize: 17, color: "#FFFFFF", marginBottom: 4 },
+    precoItem: { fontFamily: "ArbutusSlab_400Regular", fontSize: 15, color: "#FFFFFF" },
+    controle: { flexDirection: "row", alignItems: "center", gap: 8 },
+    controleBotao: { width: 30, height: 30, borderRadius: 15, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" },
+    controleBotaoTexto: { fontFamily: "ArbutusSlab_400Regular", fontSize: 16, color: "#111111", fontWeight: "bold" },
+    controleQuantidade: { fontFamily: "ArbutusSlab_400Regular", fontSize: 16, color: "#FFFFFF", minWidth: 20, textAlign: "center" },
+    totalContainer: { marginTop: 14, paddingTop: 10, alignItems: "flex-end" },
+    totalTexto: { fontFamily: "ArbutusSlab_400Regular", fontSize: 18, color: "#FFFFFF" },
+    resumoFooter: { alignItems: "center", marginTop: 4 },
+    linkAdicionarMais: { fontFamily: "Belanosima_600SemiBold", color: "#F5670E", fontSize: 15, textDecorationLine: "underline", marginBottom: 20 },
+    pagamentoLinha: { width: "100%", flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+    selectPagamento: { flex: 1, backgroundColor: "#FFFFFF", flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 14, height: 52, borderRadius: 10, borderWidth: 1, borderColor: "#E0E0E0" },
+    selectTexto: { fontFamily: "Belanosima_600SemiBold", fontSize: 15, color: "#333333" },
+    selectSeta: { fontSize: 12, color: "#777777" },
+    btnComprar: { flex: 1, backgroundColor: "#ff6b2c", height: 52, borderRadius: 10, alignItems: "center", justifyContent: "center", shadowColor: "rgba(0,0,0,0.18)", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 8, elevation: 3 },
+    btnComprarTexto: { fontFamily: "ArbutusSlab_400Regular", color: "#FFFFFF", fontSize: 16 },
+    semPedidosTexto: { fontFamily: "Belanosima_600SemiBold", fontSize: 22, color: "#555555", marginBottom: 20 },
+    btnVoltarCardapio: { backgroundColor: "#F5670E", paddingVertical: 12, paddingHorizontal: 24, borderRadius: 10 },
+    btnVoltarCardapioTexto: { fontFamily: "ArbutusSlab_400Regular", color: "#FFFFFF", fontSize: 16 },
+    modalOverlay: { flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)", justifyContent: "center", alignItems: "center", padding: 24 },
+    modalConteudo: { backgroundColor: "#FFFFFF", width: "100%", borderRadius: 14, padding: 20, elevation: 6 },
+    modalTitulo: { fontFamily: "Gabriela_400Regular", fontSize: 20, color: "#222222", marginBottom: 16, textAlign: "center" },
+    modalItem: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "#F0F0F0", alignItems: "center" },
+    modalItemAtivo: { backgroundColor: "#FFE7D2", borderRadius: 8 },
+    modalItemTexto: { fontFamily: "Belanosima_400Regular", fontSize: 16, color: "#444444" },
+    modalItemTextoAtivo: { fontFamily: "Belanosima_700Bold", color: "#F5670E" }
 });

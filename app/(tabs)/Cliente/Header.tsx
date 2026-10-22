@@ -6,6 +6,7 @@ import {
   useFonts,
 } from "@expo-google-fonts/berkshire-swash";
 
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../../services/authContext";
 import { useCartStore } from "../../stores/useCartStore";
 
@@ -23,10 +24,6 @@ interface HeaderProps {
   nomeUsuario?: string;
 }
 
-/**
- * Cabeçalho unificado do cliente com botão de perfil, título idêntico à tela de login e carrinho.
- * @param props Propriedades para controle da sidebar e nome de exibição
- */
 export default function Header({
   sidebarAberta,
   setSidebarAberta,
@@ -34,13 +31,11 @@ export default function Header({
 }: HeaderProps) {
   const router = useRouter();
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const nomeExibicao = nomeUsuario || user?.nome;
-
-  // Escuta o array do carrinho direto da store global
   const carrinho = useCartStore((state) => state.carrinho);
 
-  // Calcula o total de itens de forma reativa instantânea
   const totalItens = useMemo(() => {
     return carrinho.reduce((acc, item) => acc + item.quantidade, 0);
   }, [carrinho]);
@@ -49,19 +44,10 @@ export default function Header({
     BerkshireSwash: BerkshireSwash_400Regular,
   });
 
-  return (
-    <View style={styles.header}>
-      {/* Título Centralizado no mesmo estilo e proporção da tela de Login */}
-      <View style={styles.tituloContainer} pointerEvents="none">
-        <Text
-          style={[styles.titulo, fontsLoaded && styles.tituloComFonte]}
-          numberOfLines={1}
-          adjustsFontSizeToFit
-        >
-          Sabor Universitário
-        </Text>
-      </View>
+  const topPadding = Math.max(insets.top, 44);
 
+  return (
+    <View style={[styles.header, { paddingTop: topPadding + 8 }]}>
       {/* Botão Perfil / Menu Lateral à Esquerda */}
       <Pressable
         accessibilityRole="button"
@@ -81,6 +67,18 @@ export default function Header({
           <View style={styles.fotoPlaceholder} />
         )}
       </Pressable>
+
+      {/* Título Centralizado com espaço flexível para nunca encostar nos lados */}
+      <View style={styles.tituloContainer}>
+        <Text
+          style={[styles.titulo, fontsLoaded && styles.tituloComFonte]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}
+        >
+          Sabor Universitário
+        </Text>
+      </View>
 
       {/* Botão Carrinho à Direita */}
       <Pressable
@@ -103,13 +101,11 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: "#FF7124",
     width: "100%",
-    paddingTop: 40,
-    paddingBottom: 24,
-    paddingHorizontal: 20,
+    paddingBottom: 12,
+    paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    position: "relative",
     shadowColor: "#000000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
@@ -117,18 +113,14 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   tituloContainer: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top: 40,
-    bottom: 24,
+    flex: 1,
+    paddingHorizontal: 8,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 60,
   },
   titulo: {
     color: "#ffffff",
-    fontSize: 32,
+    fontSize: 24,
     textAlign: "center",
     includeFontPadding: false,
   },
