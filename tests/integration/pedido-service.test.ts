@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest'; //testamos o serviço integrando a validação ao mock do Supabase
 import { createOrder } from '../../services/pedidoService';
 import { supabase } from '../../services/supabase';
 import { buildOrderInput } from '../factories/order.factory';
