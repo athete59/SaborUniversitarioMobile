@@ -43,7 +43,8 @@ O sistema detecta automaticamente o perfil do usuário durante o login e o redir
 - **Gerenciamento de Estado:** [Zustand](https://github.com/pmndrs/zustand) com persistência reativa via `@react-native-async-storage/async-storage`
 - **Banco de Dados & Storage:** [Supabase](https://supabase.com) (PostgreSQL + Bucket Storage)
 - **Câmera & Leitor Barcode:** `expo-camera` (CameraView para leitura de QR Code)
-- **Qualidade de Código:** ESLint configurado via `expo lint` e Jest para testes unitários
+- **Testes Unitários & Integração:** Vitest
+- **Testes E2E de Usuário Real Mobile:** Maestro
 
 ---
 
@@ -79,8 +80,33 @@ O sistema detecta automaticamente o perfil do usuário durante o login e o redir
 
 ---
 
-## 🧪 Scripts Disponíveis
+## 🧪 Testes Automatizados
+
+O projeto possui uma arquitetura completa de testes automatizados, combinando testes lógicos/unitários com **Vitest** e testes de interface de usuário real no mobile com **Maestro**:
+
+### 1. Testes de Unidade e Integração (Vitest)
+| Comando | Descrição | Escopo |
+| :--- | :--- | :--- |
+| `npm test` | **Testes Unitários** | Regras de negócio, cálculos monetários do carrinho e autenticação (`__tests__/`) |
+| `npm run test:integration` | **Testes de Integração** | Validação de schemas Zod e factories com Faker (`tests/integration/`, `tests/factories/`) |
+| `npm run test:all` | **Bateria Completa Vitest** | Executa todos os testes unitários e de integração da aplicação |
+
+### 2. Testes de Interface Real Mobile (Maestro)
+Automação E2E que entra no aplicativo e interage com toques e inputs reais no emulador/celular:
+
+| Comando | Descrição | Fluxo Testado |
+| :--- | :--- | :--- |
+| `npm run test:maestro` | **Suíte Completa Mobile** | Executa todos os cenários mobile sequencialmente |
+| `npm run test:maestro:login` | **Login & Validações** | Valida campos vazios, credenciais erradas e recuperação |
+| `npm run test:maestro:cliente` | **Jornada do Cliente** | Login, restaurantes, navegação lateral e logout |
+| `npm run test:maestro:funcionario` | **Jornada do Funcionário** | Login, scanner, alternância para busca manual e logout |
+| `npm run test:maestro:empresa` | **Jornada da Empresa** | Login, visualização de métricas no Dashboard e menu |
+
+> 📖 Para instruções detalhadas de como executar em emuladores Android ou iOS, consulte o [MAESTRO_GUIDE.md](file:///c:/Users/Luiza/Projetos/Sabor%20Universitario/SaborUniversitarioMobile/MAESTRO_GUIDE.md).
+
+---
+
+## 🛠️ Outros Scripts
 
 - `npm start`: Inicia o servidor Metro do Expo.
-- `npm run lint`: Executa a verificação estática de código com o ESLint.
-- `npm test`: Executa a suite de testes unitários com Jest.
+- `npm run lint`: Executa a verificação estática de código com o ESLint (`expo lint`).

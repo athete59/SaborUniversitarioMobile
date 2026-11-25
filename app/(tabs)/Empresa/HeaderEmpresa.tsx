@@ -20,7 +20,7 @@ export default function HeaderEmpresa({ onPressMenu }: HeaderEmpresaProps) {
 
   return (
     <View style={styles.header}>
-      <TouchableOpacity onPress={onPressMenu} style={styles.menuButton}>
+      <TouchableOpacity testID="btn-menu-lateral-empresa" onPress={onPressMenu} style={styles.menuButton}>
         <View style={styles.line} />
         <View style={styles.line} />
         <View style={styles.line} />

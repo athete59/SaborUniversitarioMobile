@@ -116,6 +116,7 @@ export default function SideBarEmpresa({
           {/* Lista do Menu da Empresa Enxuto */}
           <View style={styles.listaMenu}>
             <TouchableOpacity
+              testID="menu-empresa-dashboard"
               style={styles.itemMenu}
               activeOpacity={0.7}
               onPress={() => navegarPara("/(tabs)/Empresa/Dashboard")}
@@ -124,6 +125,7 @@ export default function SideBarEmpresa({
             </TouchableOpacity>
 
             <TouchableOpacity
+              testID="menu-empresa-produtos"
               style={styles.itemMenu}
               activeOpacity={0.7}
               onPress={() => navegarPara("/(tabs)/Empresa/CadastrarProduto")}
@@ -132,6 +134,7 @@ export default function SideBarEmpresa({
             </TouchableOpacity>
 
             <TouchableOpacity
+              testID="menu-empresa-formas-pagamento"
               style={styles.itemMenu}
               activeOpacity={0.7}
               onPress={() => navegarPara("/(tabs)/Empresa/FormasPagamento")}
@@ -140,6 +143,7 @@ export default function SideBarEmpresa({
             </TouchableOpacity>
 
             <TouchableOpacity
+              testID="menu-empresa-formas-recebimento"
               style={styles.itemMenu}
               activeOpacity={0.7}
               onPress={() => navegarPara("/(tabs)/Empresa/FormasRecebimento")}
@@ -149,6 +153,7 @@ export default function SideBarEmpresa({
 
             {/* Opção para deslogar da conta */}
             <TouchableOpacity
+              testID="menu-empresa-sair"
               style={[styles.itemMenu, styles.itemSair]}
               activeOpacity={0.7}
               onPress={handleSair}

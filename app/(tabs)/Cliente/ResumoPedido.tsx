@@ -1,39 +1,39 @@
-import React, { useState, useMemo } from "react";
-import {
-    SafeAreaView,
-    ScrollView,
-    View,
-    Text,
-    Image,
-    TouchableOpacity,
-    StyleSheet,
-    ActivityIndicator,
-    Alert,
-    Modal,
-} from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
+import { useMemo, useState } from "react";
+import {
+    ActivityIndicator,
+    Alert,
+    Image,
+    Modal,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
 
 // Fontes
 import {
-    useFonts as useGabriela,
-    Gabriela_400Regular,
-} from "@expo-google-fonts/gabriela";
-import {
-    useFonts as useArbutusSlab,
     ArbutusSlab_400Regular,
+    useFonts as useArbutusSlab,
 } from "@expo-google-fonts/arbutus-slab";
 import {
-    useFonts as useBelanosima,
     Belanosima_400Regular,
     Belanosima_600SemiBold,
     Belanosima_700Bold,
+    useFonts as useBelanosima,
 } from "@expo-google-fonts/belanosima";
+import {
+    Gabriela_400Regular,
+    useFonts as useGabriela,
+} from "@expo-google-fonts/gabriela";
 
+import { supabase } from "../../../services/supabase";
+import { useCartStore } from "../../../stores/useCartStore";
 import Header from "./Header";
 import Sidebar from "./SideBar";
-import { supabase } from "../../../services/supabase";
-import { useCartStore } from "../../stores/useCartStore";
 
 const FORMAS_PAGAMENTO = ["Dinheiro", "Pix", "Cartão"];
 
@@ -69,8 +69,9 @@ export default function ResumoPedido() {
 
     const [sidebarAberta, setSidebarAberta] = useState<boolean>(false);
     const [enviandoPedido, setEnviandoPedido] = useState<boolean>(false);
-    const [formaPagamento, setFormaPagamento] = useState<string>("Dinheiro");
-    const [modalPagamentoVisivel, setModalPagamentoVisivel] = useState<boolean>(false);
+    const [formaPagamento, setFormaPagamento] = useState<string>("Cartão");
+    const [modalPagamentoVisivel, setModalPagamentoVisivel] =
+        useState<boolean>(false);
 
     // Consumo 100% Reativo do Zustand
     const itens = useCartStore((state) => state.carrinho);
@@ -87,7 +88,7 @@ export default function ResumoPedido() {
                             .replace("R$", "")
                             .replace(/\s/g, "")
                             .replace(".", "")
-                            .replace(",", ".")
+                            .replace(",", "."),
                     )
                     : Number(item.preco);
 
@@ -133,7 +134,7 @@ export default function ResumoPedido() {
 
             // 1. Grava o pedido: "Pendente" se for Pix, senão "Em preparo"
             const statusInicial = formaPagamento === "Pix" ? "Pendente" : "Em preparo";
-            const idFormaNum = obterIdFormaPagamento(formaPagamento); // Converte para o ID correto (1, 2 ou 3)
+            const idFormaNum = obterIdFormaPagamento(formaPagamento);
 
             const { data: pedidoCriado, error: erroPedido } = await supabase
                 .from("pedidos")
@@ -143,9 +144,9 @@ export default function ResumoPedido() {
                         valortotal: total,
                         status: statusInicial,
                         forma_pagamento: formaPagamento,
-                        idforma_pagamento: idFormaNum, // Enviando o ID numérico correto!
+                        idforma_pagamento: idFormaNum,
                         data_pedido: new Date().toISOString(),
-                        data_hora: new Date().toISOString()
+                        data_hora: new Date().toISOString(),
                     },
                 ])
                 .select()
@@ -164,7 +165,11 @@ export default function ResumoPedido() {
                     preco_unitario:
                         typeof item.preco === "string"
                             ? parseFloat(
-                                item.preco.replace("R$", "").replace(/\s/g, "").replace(".", "").replace(",", ".")
+                                item.preco
+                                    .replace("R$", "")
+                                    .replace(/\s/g, "")
+                                    .replace(".", "")
+                                    .replace(",", "."),
                             )
                             : item.preco,
                 }));
@@ -184,19 +189,21 @@ export default function ResumoPedido() {
                     body: { pedidoId: pedidoCriado.id },
                 });
 
-                // Lê a resposta da função criar-pix e calcula quando o Pix expira
                 const brCodeRecebido = typeof dadosPix?.brCode === "string" ? dadosPix.brCode.trim() : "";
                 const segundosPix = Number(dadosPix?.expiraEmSegundos);
                 const duracaoPix = Number.isFinite(segundosPix) && segundosPix > 0 ? Math.min(segundosPix, 3600) : 900;
-                const respostaPix = brCodeRecebido !== ""
-                    ? { ok: true as const, brCode: brCodeRecebido, expiraEm: Date.now() + duracaoPix * 1000 }
-                    : {
-                        ok: false as const,
-                        motivo: typeof dadosPix?.error === "string" ? dadosPix.error : "O servidor não devolveu o código Pix.",
-                    };
+                const respostaPix =
+                    brCodeRecebido !== ""
+                        ? { ok: true as const, brCode: brCodeRecebido, expiraEm: Date.now() + duracaoPix * 1000 }
+                        : {
+                            ok: false as const,
+                            motivo:
+                                typeof dadosPix?.error === "string"
+                                    ? dadosPix.error
+                                    : "O servidor não devolveu o código Pix.",
+                        };
 
                 if (erroPix || !respostaPix.ok) {
-                    // Mostra o motivo real que a função devolveu (antes ele ficava escondido)
                     let detalhe = erroPix?.message ?? "";
                     try {
                         detalhe = JSON.stringify(await (erroPix as any).context.json());
@@ -205,11 +212,8 @@ export default function ResumoPedido() {
                     throw new Error("Não foi possível gerar a cobrança Pix.");
                 }
 
-                // Só limpa o carrinho depois que o Pix foi gerado com sucesso
                 limparCarrinho();
 
-                // Navega para a tela de pagamento passando o código Copia e Cola
-                // e o horário em que ele expira (para o contador regressivo)
                 router.push({
                     pathname: "/(tabs)/Cliente/PagamentoPix",
                     params: {
@@ -218,7 +222,6 @@ export default function ResumoPedido() {
                         expiraEm: String(respostaPix.expiraEm),
                     },
                 } as any);
-
             } else {
                 // Dinheiro ou Cartão: finaliza e vai para Meus Pedidos
                 limparCarrinho();
@@ -231,7 +234,7 @@ export default function ResumoPedido() {
                             text: "Ver Meus Pedidos",
                             onPress: () => router.push("/(tabs)/Cliente/MeusPedidos" as any),
                         },
-                    ]
+                    ],
                 );
             }
         } catch (error: any) {
@@ -266,10 +269,14 @@ export default function ResumoPedido() {
                     <Text style={styles.semPedidosTexto}>Nenhum item no carrinho</Text>
                     <TouchableOpacity
                         style={styles.btnVoltarCardapio}
-                        onPress={() => router.replace("/(tabs)/Cliente/PaginaInicial" as any)}
+                        onPress={() =>
+                            router.replace("/(tabs)/Cliente/PaginaInicial" as any)
+                        }
                         activeOpacity={0.8}
                     >
-                        <Text style={styles.btnVoltarCardapioTexto}>Voltar ao Cardápio</Text>
+                        <Text style={styles.btnVoltarCardapioTexto}>
+                            Voltar ao Cardápio
+                        </Text>
                     </TouchableOpacity>
                 </View>
             </SafeAreaView>
@@ -307,11 +314,12 @@ export default function ResumoPedido() {
                                         .replace("R$", "")
                                         .replace(/\s/g, "")
                                         .replace(".", "")
-                                        .replace(",", ".")
+                                        .replace(",", "."),
                                 )
                                 : Number(produto.preco);
 
-                        const subtotalItem = (isNaN(precoNumerico) ? 0 : precoNumerico) * produto.quantidade;
+                        const subtotalItem =
+                            (isNaN(precoNumerico) ? 0 : precoNumerico) * produto.quantidade;
 
                         return (
                             <View
@@ -404,6 +412,21 @@ export default function ResumoPedido() {
                             )}
                         </TouchableOpacity>
                     </View>
+
+                    {/* Botão de Adicionar Cartão exibido quando "Cartão" estiver selecionado */}
+                    {formaPagamento === "Cartão" && (
+                        <TouchableOpacity
+                            style={styles.btnAdicionarCartao}
+                            onPress={() =>
+                                router.push("/(tabs)/Cliente/AdicionarCartao" as any)
+                            }
+                            activeOpacity={0.8}
+                        >
+                            <Text style={styles.btnAdicionarCartaoTexto}>
+                                + Adicionar cartão
+                            </Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
             </ScrollView>
 
@@ -479,6 +502,8 @@ const styles = StyleSheet.create({
     selectSeta: { fontSize: 12, color: "#777777" },
     btnComprar: { flex: 1, backgroundColor: "#ff6b2c", height: 52, borderRadius: 10, alignItems: "center", justifyContent: "center", shadowColor: "rgba(0,0,0,0.18)", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 8, elevation: 3 },
     btnComprarTexto: { fontFamily: "ArbutusSlab_400Regular", color: "#FFFFFF", fontSize: 16 },
+    btnAdicionarCartao: { marginTop: 16, width: "100%", height: 48, borderRadius: 10, borderWidth: 1.5, borderColor: "#F5670E", backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" },
+    btnAdicionarCartaoTexto: { fontFamily: "Belanosima_600SemiBold", fontSize: 15, color: "#F5670E" },
     semPedidosTexto: { fontFamily: "Belanosima_600SemiBold", fontSize: 22, color: "#555555", marginBottom: 20 },
     btnVoltarCardapio: { backgroundColor: "#F5670E", paddingVertical: 12, paddingHorizontal: 24, borderRadius: 10 },
     btnVoltarCardapioTexto: { fontFamily: "ArbutusSlab_400Regular", color: "#FFFFFF", fontSize: 16 },
@@ -488,5 +513,5 @@ const styles = StyleSheet.create({
     modalItem: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "#F0F0F0", alignItems: "center" },
     modalItemAtivo: { backgroundColor: "#FFE7D2", borderRadius: 8 },
     modalItemTexto: { fontFamily: "Belanosima_400Regular", fontSize: 16, color: "#444444" },
-    modalItemTextoAtivo: { fontFamily: "Belanosima_700Bold", color: "#F5670E" }
+    modalItemTextoAtivo: { fontFamily: "Belanosima_700Bold", color: "#F5670E" },
 });

@@ -1,14 +1,14 @@
+import {
+    BerkshireSwash_400Regular,
+    useFonts,
+} from "@expo-google-fonts/berkshire-swash";
+import { useRouter, type Href } from "expo-router";
 import React, { useMemo } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
-import { useRouter, type Href } from "expo-router";
-import {
-  BerkshireSwash_400Regular,
-  useFonts,
-} from "@expo-google-fonts/berkshire-swash";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../../../services/authContext";
-import { useCartStore } from "../../stores/useCartStore";
+import { useCartStore } from "../../../stores/useCartStore";
 
 export interface ItemCarrinho {
   id: string | number;
@@ -50,6 +50,7 @@ export default function Header({
     <View style={[styles.header, { paddingTop: topPadding + 8 }]}>
       {/* Botão Perfil / Menu Lateral à Esquerda */}
       <Pressable
+        testID="btn-menu-lateral"
         accessibilityRole="button"
         accessibilityLabel={
           nomeExibicao ? `Abrir menu de ${nomeExibicao}` : "Abrir menu lateral"
@@ -82,6 +83,7 @@ export default function Header({
 
       {/* Botão Carrinho à Direita */}
       <Pressable
+        testID="btn-carrinho-header"
         accessibilityRole="button"
         accessibilityLabel={`Carrinho de compras, ${totalItens} itens`}
         style={({ pressed }) => [

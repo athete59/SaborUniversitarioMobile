@@ -8,9 +8,11 @@
     "scheme": "saboruniversitariomobile",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.saboruniversitario.mobile"
     },
     "android": {
+      "package": "com.saboruniversitario.mobile",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/SaborUniLogo.png",
         "backgroundColor": "#FF7124"

@@ -1,0 +1,50 @@
+appId: ${APP_ID:-com.saboruniversitario.mobile}
+---
+# ==============================================================================
+# FLUXO 4: Jornada Completa da Empresa (Mobile E2E com Maestro)
+# ==============================================================================
+
+- launchApp:
+    clearState: true
+
+# 1. Login da Empresa
+- assertVisible: "Acesse a sua conta"
+- tapOn:
+    id: "input-email"
+- inputText: "contato@lanchonetecentral.com"
+
+- tapOn:
+    id: "input-senha"
+- inputText: "empresaPass123"
+
+- tapOn:
+    id: "btn-entrar"
+
+# 2. Tela Principal do Dashboard Gerencial
+- assertVisible: "Visão Geral"
+- assertVisible: "Ações Rápidas"
+- assertVisible:
+    id: "btn-cadastrar-novo-produto"
+- assertVisible:
+    id: "btn-formas-pagamento"
+- assertVisible:
+    id: "btn-menu-lateral-empresa"
+
+# 3. Navegação via Menu Lateral da Empresa
+- tapOn:
+    id: "btn-menu-lateral-empresa"
+- assertVisible:
+    id: "menu-empresa-dashboard"
+- assertVisible:
+    id: "menu-empresa-produtos"
+- assertVisible:
+    id: "menu-empresa-formas-pagamento"
+- assertVisible:
+    id: "menu-empresa-sair"
+
+# 4. Encerramento de sessão (Logout)
+- tapOn:
+    id: "menu-empresa-sair"
+
+# 5. Confirma retorno à tela de Login
+- assertVisible: "Acesse a sua conta"

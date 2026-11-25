@@ -1,36 +1,36 @@
-import React, { useEffect, useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams, useRouter } from "expo-router";
 
 // Fontes Google Fonts
 import {
-  ArbutusSlab_400Regular,
-  useFonts as useArbutus,
+    ArbutusSlab_400Regular,
+    useFonts as useArbutus,
 } from "@expo-google-fonts/arbutus-slab";
 import {
-  Belanosima_400Regular,
-  Belanosima_600SemiBold,
-  useFonts as useBelanosima,
+    Belanosima_400Regular,
+    Belanosima_600SemiBold,
+    useFonts as useBelanosima,
 } from "@expo-google-fonts/belanosima";
 import {
-  Gabriela_400Regular,
-  useFonts as useGabriela,
+    Gabriela_400Regular,
+    useFonts as useGabriela,
 } from "@expo-google-fonts/gabriela";
 
+import { supabase } from "../../../services/supabase";
+import { useCartStore } from "../../../stores/useCartStore";
 import Header from "./Header";
 import Sidebar from "./SideBar";
-import { supabase } from "../../../services/supabase";
-import { useCartStore } from "../../stores/useCartStore";
 
 interface Produto {
   id_produto?: number;
@@ -52,9 +52,7 @@ export default function Cardapio() {
   const router = useRouter();
 
   const idEmpresa = params.id;
-  const nomeEmpresa = params.nome
-    ? String(params.nome)
-    : "Cardápio";
+  const nomeEmpresa = params.nome ? String(params.nome) : "Cardápio";
 
   const [sidebarAberta, setSidebarAberta] = useState<boolean>(false);
   const [carregando, setCarregando] = useState<boolean>(true);
@@ -175,7 +173,9 @@ export default function Cardapio() {
    * @param produto Dados do produto selecionado
    */
   function handleAdicionarCarrinho(produto: Produto) {
-    const chaveProduto = String(produto.id_produto || produto.id || produto.nome);
+    const chaveProduto = String(
+      produto.id_produto || produto.id || produto.nome,
+    );
     const qtd = quantidades[chaveProduto] || 1;
 
     // Normaliza o preço para número
@@ -184,7 +184,9 @@ export default function Cardapio() {
       precoNumerico = produto.preco;
     } else {
       const parsed = parseFloat(
-        String(produto.preco).replace(/[^0-9.,]/g, "").replace(",", ".")
+        String(produto.preco)
+          .replace(/[^0-9.,]/g, "")
+          .replace(",", "."),
       );
       precoNumerico = isNaN(parsed) ? 0 : parsed;
     }
