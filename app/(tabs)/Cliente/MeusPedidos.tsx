@@ -1,4 +1,6 @@
-import React, { useEffect, useState } from "react";
+import { Feather, MaterialIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -12,8 +14,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Feather, MaterialIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 
 import { useAuth } from "../../../services/authContext";
 import { supabase } from "../../../services/supabase";
@@ -21,24 +21,24 @@ import Header from "./Header";
 import Sidebar from "./SideBar";
 
 interface ItemPedido {
-  id: number;
-  idproduto: number;
+  id: string | number;
+  idproduto?: number;
   quantidade: number;
   preco_unitario: number;
   produtos?: {
-    nome: string;
+    nome?: string;
     imagem?: string;
   };
 }
 
 interface Pedido {
-  id: number;
-  idcliente: number;
+  id: string | number;
+  idcliente?: string | number;
   valortotal: number;
   status: string;
   forma_pagamento: string;
   data_pedido: string;
-  pedidos_produtos?: ItemPedido[];
+  pedidos_produtos: ItemPedido[];
 }
 
 /**
@@ -51,111 +51,159 @@ export default function MeusPedidos() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [atualizando, setAtualizando] = useState(false);
-  const [pedidoSelecionado, setPedidoSelecionado] = useState<Pedido | null>(null);
+  const [pedidoSelecionado, setPedidoSelecionado] = useState<Pedido | null>(
+    null,
+  );
   const [modalQrVisivel, setModalQrVisivel] = useState(false);
+
+  const consultarPedidosFormatados = useCallback(async (): Promise<
+    Pedido[]
+  > => {
+    const idPerfil = user?.perfil?.id;
+    const idUsuario = user?.id;
+
+    if (!idPerfil && !idUsuario) {
+      return [];
+    }
+
+    // 1. Busca os registros da tabela 'pedidos' de forma direta e compatível
+    let query = supabase.from("pedidos").select("*");
+
+    if (idPerfil && idUsuario && idPerfil !== idUsuario) {
+      query = query.or(`idcliente.eq.${idPerfil},idcliente.eq.${idUsuario}`);
+    } else if (idPerfil) {
+      query = query.eq("idcliente", idPerfil);
+    } else if (idUsuario) {
+      query = query.eq("idcliente", idUsuario);
+    }
+
+    const { data: pedidosData, error: erroPedidos } = await query.order("id", {
+      ascending: false,
+    });
+
+    if (erroPedidos) {
+      console.log("Erro ao consultar tabela pedidos:", erroPedidos);
+      throw erroPedidos;
+    }
+
+    if (!Array.isArray(pedidosData) || pedidosData.length === 0) {
+      return [];
+    }
+
+    // 2. Busca itens na tabela pedidos_produtos de forma isolada
+    const idsPedidos = pedidosData
+      .map((p: any) => p?.id)
+      .filter((id: any) => id !== undefined && id !== null);
+
+    let itensData: any[] = [];
+    if (idsPedidos.length > 0) {
+      try {
+        const { data: itensRes } = await supabase
+          .from("pedidos_produtos")
+          .select("*")
+          .in("idpedido", idsPedidos);
+        if (Array.isArray(itensRes)) {
+          itensData = itensRes.filter(Boolean);
+        }
+      } catch (e) {
+        console.log("Aviso ao buscar itens de pedidos_produtos:", e);
+      }
+    }
+
+    // 3. Busca os produtos associados
+    const produtosMap = new Map<number, { nome?: string; imagem?: string }>();
+    const idsProdutos = [
+      ...new Set(
+        itensData
+          .map((it: any) => it?.idproduto)
+          .filter((id: any) => id !== undefined && id !== null),
+      ),
+    ];
+
+    if (idsProdutos.length > 0) {
+      try {
+        const { data: produtosRes } = await supabase
+          .from("produtos")
+          .select("id, nome, imagem")
+          .in("id", idsProdutos);
+
+        if (Array.isArray(produtosRes)) {
+          produtosRes.forEach((prod: any) => {
+            if (prod?.id !== undefined && prod?.id !== null) {
+              produtosMap.set(prod.id, prod);
+            }
+          });
+        }
+      } catch (e) {
+        console.log("Aviso ao buscar dados dos produtos:", e);
+      }
+    }
+
+    // 4. Constrói a lista final normalizando nomes de colunas e blindando contra nulos
+    return pedidosData.filter(Boolean).map((p: any, pedidoIdx: number) => {
+      const pedidoId = p?.id ?? `pedido-${pedidoIdx}`;
+      const itensDoPedido: ItemPedido[] = itensData
+        .filter(
+          (it: any) => it?.idpedido !== undefined && it?.idpedido === p?.id,
+        )
+        .map((it: any, itemIdx: number) => {
+          const quantidadeNum = Number(it?.quantidade);
+          const quantidadeSegura =
+            Number.isFinite(quantidadeNum) && quantidadeNum > 0
+              ? quantidadeNum
+              : 1;
+
+          const precoNum = Number(it?.preco_unitario ?? it?.preco ?? 0);
+          const precoSeguro = Number.isFinite(precoNum) ? precoNum : 0;
+
+          const produtoInfo =
+            it?.idproduto !== undefined && it?.idproduto !== null
+              ? produtosMap.get(it.idproduto)
+              : undefined;
+
+          return {
+            id: it?.id ?? `${pedidoId}-item-${itemIdx}`,
+            idproduto: it?.idproduto,
+            quantidade: quantidadeSegura,
+            preco_unitario: precoSeguro,
+            produtos: {
+              nome: produtoInfo?.nome || it?.nome_produto || "Item do Pedido",
+              imagem: produtoInfo?.imagem,
+            },
+          };
+        });
+
+      const totalBruto = Number(p?.valortotal ?? p?.valor_total ?? 0);
+      const totalCalculadoItens = itensDoPedido.reduce(
+        (acc, item) => acc + item.preco_unitario * item.quantidade,
+        0,
+      );
+      const valorTotalSeguro = Number.isFinite(totalBruto)
+        ? totalBruto
+        : totalCalculadoItens;
+
+      return {
+        id: pedidoId,
+        idcliente: p?.idcliente,
+        valortotal: valorTotalSeguro,
+        status: p?.status || "Em preparo",
+        forma_pagamento: String(
+          p?.forma_pagamento || p?.idforma_pagamento || "Não informado",
+        ),
+        data_pedido: p?.data_pedido || p?.data_hora || p?.created_at || "",
+        pedidos_produtos: itensDoPedido,
+      };
+    });
+  }, [user]);
 
   useEffect(() => {
     let isMounted = true;
 
-    /**
-     * Consulta os pedidos do cliente logado no Supabase de forma resiliente.
-     */
     async function buscarPedidos() {
-      const idPerfil = user?.perfil?.id;
-      const idUsuario = user?.id;
-
-      if (!idPerfil && !idUsuario) {
-        if (isMounted) setCarregando(false);
-        return;
-      }
-
       try {
-        // 1. Busca os registros da tabela 'pedidos' de forma direta e compatível
-        let query = supabase.from("pedidos").select("*");
-
-        if (idPerfil && idUsuario && idPerfil !== idUsuario) {
-          query = query.or(`idcliente.eq.${idPerfil},idcliente.eq.${idUsuario}`);
-        } else if (idPerfil) {
-          query = query.eq("idcliente", idPerfil);
-        } else if (idUsuario) {
-          query = query.eq("idcliente", idUsuario);
-        }
-
-        const { data: pedidosData, error: erroPedidos } = await query.order("id", {
-          ascending: false,
-        });
-
-        if (erroPedidos) {
-          console.log("Erro ao consultar tabela pedidos:", erroPedidos);
-          throw erroPedidos;
-        }
-
-        if (!pedidosData || pedidosData.length === 0) {
-          if (isMounted) setPedidos([]);
-          return;
-        }
-
-        // 2. Busca itens na tabela pedidos_produtos de forma isolada
-        const idsPedidos = pedidosData.map((p: any) => p.id);
-        let itensData: any[] = [];
-        try {
-          const { data: itensRes } = await supabase
-            .from("pedidos_produtos")
-            .select("*")
-            .in("idpedido", idsPedidos);
-          if (itensRes) itensData = itensRes;
-        } catch (e) {
-          console.log("Aviso ao buscar itens de pedidos_produtos:", e);
-        }
-
-        // 3. Busca os produtos associados
-        const produtosMap = new Map<number, { nome: string; imagem?: string }>();
-        const idsProdutos = [
-          ...new Set(itensData.map((it: any) => it.idproduto).filter(Boolean)),
-        ];
-
-        if (idsProdutos.length > 0) {
-          try {
-            const { data: produtosRes } = await supabase
-              .from("produtos")
-              .select("id, nome, imagem")
-              .in("id", idsProdutos);
-
-            if (produtosRes) {
-              produtosRes.forEach((prod: any) => produtosMap.set(prod.id, prod));
-            }
-          } catch (e) {
-            console.log("Aviso ao buscar dados dos produtos:", e);
-          }
-        }
-
-        // 4. Constrói a lista final normalizando nomes de colunas do banco
-        const pedidosFormatados: Pedido[] = pedidosData.map((p: any) => {
-          const itensDoPedido = itensData
-            .filter((it: any) => it.idpedido === p.id)
-            .map((it: any) => ({
-              id: it.id,
-              idproduto: it.idproduto,
-              quantidade: it.quantidade || 1,
-              preco_unitario: Number(it.preco_unitario ?? it.preco ?? 0),
-              produtos: produtosMap.get(it.idproduto) || {
-                nome: "Item do Pedido",
-              },
-            }));
-
-          return {
-            id: p.id,
-            idcliente: p.idcliente,
-            valortotal: Number(p.valortotal ?? p.valor_total ?? 0),
-            status: p.status || "Em preparo",
-            forma_pagamento: String(p.forma_pagamento || p.idforma_pagamento || "Não informado"),
-            data_pedido: p.data_pedido || p.data_hora || p.created_at || "",
-            pedidos_produtos: itensDoPedido,
-          };
-        });
-
+        const formatados = await consultarPedidosFormatados();
         if (isMounted) {
-          setPedidos(pedidosFormatados);
+          setPedidos(formatados);
         }
       } catch (error) {
         console.log("Erro ao carregar pedidos:", error);
@@ -174,95 +222,21 @@ export default function MeusPedidos() {
     return () => {
       isMounted = false;
     };
-  }, [user]);
+  }, [consultarPedidosFormatados]);
 
   /**
    * Atualiza a lista de pedidos sob demanda pelo gesto de puxar para atualizar.
    */
   const onRefresh = async () => {
     setAtualizando(true);
-    const idPerfil = user?.perfil?.id;
-    const idUsuario = user?.id;
-
-    if (idPerfil || idUsuario) {
-      try {
-        let query = supabase.from("pedidos").select("*");
-
-        if (idPerfil && idUsuario && idPerfil !== idUsuario) {
-          query = query.or(`idcliente.eq.${idPerfil},idcliente.eq.${idUsuario}`);
-        } else if (idPerfil) {
-          query = query.eq("idcliente", idPerfil);
-        } else if (idUsuario) {
-          query = query.eq("idcliente", idUsuario);
-        }
-
-        const { data: pedidosData } = await query.order("id", { ascending: false });
-
-        if (pedidosData && pedidosData.length > 0) {
-          const idsPedidos = pedidosData.map((p: any) => p.id);
-          let itensData: any[] = [];
-          try {
-            const { data: itensRes } = await supabase
-              .from("pedidos_produtos")
-              .select("*")
-              .in("idpedido", idsPedidos);
-            if (itensRes) itensData = itensRes;
-          } catch (e) {
-            console.log("Aviso ao buscar itens:", e);
-          }
-
-          const produtosMap = new Map<number, { nome: string; imagem?: string }>();
-          const idsProdutos = [
-            ...new Set(itensData.map((it: any) => it.idproduto).filter(Boolean)),
-          ];
-
-          if (idsProdutos.length > 0) {
-            try {
-              const { data: produtosRes } = await supabase
-                .from("produtos")
-                .select("id, nome, imagem")
-                .in("id", idsProdutos);
-              if (produtosRes) {
-                produtosRes.forEach((prod: any) => produtosMap.set(prod.id, prod));
-              }
-            } catch (e) {
-              console.log("Aviso ao buscar produtos:", e);
-            }
-          }
-
-          const pedidosFormatados: Pedido[] = pedidosData.map((p: any) => {
-            const itensDoPedido = itensData
-              .filter((it: any) => it.idpedido === p.id)
-              .map((it: any) => ({
-                id: it.id,
-                idproduto: it.idproduto,
-                quantidade: it.quantidade || 1,
-                preco_unitario: Number(it.preco_unitario ?? it.preco ?? 0),
-                produtos: produtosMap.get(it.idproduto) || {
-                  nome: "Item do Pedido",
-                },
-              }));
-
-            return {
-              id: p.id,
-              idcliente: p.idcliente,
-              valortotal: Number(p.valortotal ?? p.valor_total ?? 0),
-              status: p.status || "Em preparo",
-              forma_pagamento: String(p.forma_pagamento || p.idforma_pagamento || "Não informado"),
-              data_pedido: p.data_pedido || p.data_hora || p.created_at || "",
-              pedidos_produtos: itensDoPedido,
-            };
-          });
-
-          setPedidos(pedidosFormatados);
-        } else {
-          setPedidos([]);
-        }
-      } catch (error) {
-        console.log("Erro ao atualizar pedidos:", error);
-      }
+    try {
+      const formatados = await consultarPedidosFormatados();
+      setPedidos(formatados);
+    } catch (error) {
+      console.log("Erro ao atualizar pedidos:", error);
+    } finally {
+      setAtualizando(false);
     }
-    setAtualizando(false);
   };
 
   /**
@@ -282,6 +256,7 @@ export default function MeusPedidos() {
     if (!dataIso) return "";
     try {
       const data = new Date(dataIso);
+      if (Number.isNaN(data.getTime())) return dataIso;
       return data.toLocaleDateString("pt-BR", {
         day: "2-digit",
         month: "2-digit",
@@ -334,8 +309,12 @@ export default function MeusPedidos() {
   };
 
   const qrUrl = pedidoSelecionado
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=PEDIDO_${pedidoSelecionado.id}`
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=PEDIDO_${encodeURIComponent(
+        String(pedidoSelecionado.id),
+      )}`
     : "";
+
+  const listaPedidosSegura = Array.isArray(pedidos) ? pedidos : [];
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["bottom", "left", "right"]}>
@@ -373,7 +352,7 @@ export default function MeusPedidos() {
             <ActivityIndicator size="large" color="#FA8006" />
             <Text style={styles.loadingText}>Carregando seus pedidos...</Text>
           </View>
-        ) : pedidos.length === 0 ? (
+        ) : listaPedidosSegura.length === 0 ? (
           <View style={styles.vazioContainer}>
             <MaterialIcons name="receipt-long" size={64} color="#CCCCCC" />
             <Text style={styles.vazioTitulo}>Nenhum pedido encontrado</Text>
@@ -383,31 +362,40 @@ export default function MeusPedidos() {
             <TouchableOpacity
               style={styles.btnCardapio}
               activeOpacity={0.8}
-              onPress={() => router.push("/(tabs)/Cliente/PaginaInicial" as any)}
+              onPress={() =>
+                router.push("/(tabs)/Cliente/PaginaInicial" as any)
+              }
             >
               <Text style={styles.btnCardapioTexto}>Ver Cardápio</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.listaPedidos}>
-            {pedidos.map((pedido) => {
-              const badge = obterBadgeStatus(pedido.status);
+            {listaPedidosSegura.map((pedido, pedidoIdx) => {
+              const badge = obterBadgeStatus(pedido?.status);
               const jaEntregue =
-                pedido.status?.toLowerCase() === "entregue";
+                String(pedido?.status || "").toLowerCase() === "entregue";
+              const itensSeguros = Array.isArray(pedido?.pedidos_produtos)
+                ? pedido.pedidos_produtos
+                : [];
+              const chavePedido = pedido?.id ?? `pedido-${pedidoIdx}`;
 
               return (
-                <View key={pedido.id} style={styles.cardPedido}>
+                <View key={String(chavePedido)} style={styles.cardPedido}>
                   {/* Cabeçalho do Card */}
                   <View style={styles.cardHeader}>
                     <View>
-                      <Text style={styles.idPedido}>Pedido #{pedido.id}</Text>
+                      <Text style={styles.idPedido}>Pedido #{pedido?.id}</Text>
                       <Text style={styles.dataPedido}>
-                        {formatarData(pedido.data_pedido)}
+                        {formatarData(pedido?.data_pedido || "")}
                       </Text>
                     </View>
 
                     <View
-                      style={[styles.badgeStatus, { backgroundColor: badge.bg }]}
+                      style={[
+                        styles.badgeStatus,
+                        { backgroundColor: badge.bg },
+                      ]}
                     >
                       <Feather
                         name={badge.icone}
@@ -415,43 +403,51 @@ export default function MeusPedidos() {
                         color={badge.text}
                         style={{ marginRight: 4 }}
                       />
-                      <Text
-                        style={[styles.badgeTexto, { color: badge.text }]}
-                      >
+                      <Text style={[styles.badgeTexto, { color: badge.text }]}>
                         {badge.label}
                       </Text>
                     </View>
                   </View>
 
                   {/* Itens do Pedido */}
-                  {pedido.pedidos_produtos &&
-                    pedido.pedidos_produtos.length > 0 && (
-                      <View style={styles.itensContainer}>
-                        {pedido.pedidos_produtos.map((item) => (
-                          <View key={item.id} style={styles.itemLinha}>
+                  {itensSeguros.length > 0 && (
+                    <View style={styles.itensContainer}>
+                      {itensSeguros.map((item, itemIdx) => {
+                        const qtd = Number(item?.quantidade ?? 1);
+                        const precoUnit = Number(item?.preco_unitario ?? 0);
+                        const subtotal =
+                          Number.isFinite(qtd) && Number.isFinite(precoUnit)
+                            ? qtd * precoUnit
+                            : 0;
+                        const chaveItem =
+                          item?.id ?? `${chavePedido}-item-${itemIdx}`;
+
+                        return (
+                          <View
+                            key={String(chaveItem)}
+                            style={styles.itemLinha}
+                          >
                             <Text style={styles.itemNome}>
-                              {item.quantidade}x{" "}
-                              {item.produtos?.nome || "Item do Pedido"}
+                              {Number.isFinite(qtd) ? qtd : 1}x{" "}
+                              {item?.produtos?.nome || "Item do Pedido"}
                             </Text>
                             <Text style={styles.itemPreco}>
-                              R${" "}
-                              {Number(
-                                item.preco_unitario * item.quantidade,
-                              ).toFixed(2)}
+                              R$ {subtotal.toFixed(2)}
                             </Text>
                           </View>
-                        ))}
-                      </View>
-                    )}
+                        );
+                      })}
+                    </View>
+                  )}
 
                   {/* Rodapé do Card */}
                   <View style={styles.cardFooter}>
                     <View>
                       <Text style={styles.formaPagamento}>
-                        Pagamento: {pedido.forma_pagamento || "Não informado"}
+                        Pagamento: {pedido?.forma_pagamento || "Não informado"}
                       </Text>
                       <Text style={styles.totalPedido}>
-                        Total: R$ {Number(pedido.valortotal || 0).toFixed(2)}
+                        Total: R$ {Number(pedido?.valortotal || 0).toFixed(2)}
                       </Text>
                     </View>
 
@@ -496,7 +492,7 @@ export default function MeusPedidos() {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitulo}>
-                Pedido #{pedidoSelecionado?.id}
+                Pedido #{pedidoSelecionado?.id ?? ""}
               </Text>
               <TouchableOpacity
                 onPress={() => setModalQrVisivel(false)}
@@ -506,7 +502,8 @@ export default function MeusPedidos() {
               </TouchableOpacity>
             </View>
 
-            {pedidoSelecionado?.status?.toLowerCase() === "entregue" ? (
+            {String(pedidoSelecionado?.status || "").toLowerCase() ===
+            "entregue" ? (
               <View style={styles.avisoEntregueBox}>
                 <Feather name="check-circle" size={32} color="#27AE60" />
                 <Text style={styles.avisoEntregueTitulo}>
@@ -542,7 +539,8 @@ export default function MeusPedidos() {
                 {Number(pedidoSelecionado?.valortotal || 0).toFixed(2)}
               </Text>
               <Text style={styles.modalPagamento}>
-                Pagamento: {pedidoSelecionado?.forma_pagamento}
+                Pagamento:{" "}
+                {pedidoSelecionado?.forma_pagamento || "Não informado"}
               </Text>
             </View>
 
